@@ -1250,7 +1250,7 @@
                                                         {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
                                                     </div>
                                                     <div>
-                                                        <span className={`text-sm font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
+                                                        <span className={`text-base font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
                                                             {task} {!isTaskVisible(selectedSubject.id, task) && "(Hidden)"}
                                                         </span>
                                                         <div className="flex flex-wrap gap-2 text-[10px] font-bold mt-1">
@@ -1387,5 +1387,6 @@
     </script>
 </body>
 </html>
+
 
 
