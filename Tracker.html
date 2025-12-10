@@ -1,0 +1,1233 @@
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  updateDoc,
+  collection,
+  getDocs,
+  query,
+  deleteField
+} from 'firebase/firestore';
+import { 
+  CheckCircle2, 
+  BookOpen, 
+  Calculator, 
+  FlaskConical, 
+  Globe2, 
+  Palette, 
+  Music, 
+  Activity,
+  Lock, 
+  Settings, 
+  X,
+  Trophy,
+  PlayCircle,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck,
+  Megaphone,
+  AlertCircle,
+  ArrowLeft,
+  UserCog,
+  Gamepad2,
+  History,
+  ThumbsDown,
+  Zap,
+  Clock,
+  ExternalLink,
+  ClipboardCheck,
+  Target,
+  List,
+  ScrollText,
+  CalendarCheck,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  HelpCircle,
+  Check,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
+
+// --- CONFIGURATION ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAetTXNbMWQtI_RBa8UfQmOsyBe_IRNp_k",
+  authDomain: "point-tracker-b314f.firebaseapp.com",
+  projectId: "point-tracker-b314f",
+  storageBucket: "point-tracker-b314f.firebasestorage.app",
+  messagingSenderId: "169392724174",
+  appId: "1:169392724174:web:3ba4d6fe5292496d9d989f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// --- CRITICAL: FIXED APP ID FOR PERSISTENCE ---
+const appId = 'gabriels-tracker-master-persistent'; 
+const DATA_COLLECTION = "daily_logs";
+const SETTINGS_COLLECTION = "settings";
+
+// --- CONSTANTS ---
+const STUDENT_NAME = "Gabriel Mendoza";
+const DEFAULT_GOAL = 50;
+
+const SUBJECTS = [
+  { 
+    id: 'english', 
+    label: 'English', 
+    icon: <BookOpen className="w-8 h-8 text-pink-600" />, 
+    color: 'from-pink-300 to-rose-200', 
+    borderColor: 'border-pink-200',
+    btnColor: 'bg-pink-100 text-pink-700',
+    tasks: ['Check In', 'Watch Video', 'Worksheet', 'Quiz']
+  },
+  { 
+    id: 'math', 
+    label: 'Math', 
+    icon: <Calculator className="w-8 h-8 text-blue-600" />, 
+    color: 'from-blue-300 to-cyan-200', 
+    borderColor: 'border-blue-200',
+    btnColor: 'bg-blue-100 text-blue-700',
+    tasks: ['Check In', 'Watch Lesson', 'Practice Problems', 'Math Game']
+  },
+  { 
+    id: 'science', 
+    label: 'Science', 
+    icon: <FlaskConical className="w-8 h-8 text-green-600" />, 
+    color: 'from-emerald-300 to-green-200', 
+    borderColor: 'border-green-200',
+    btnColor: 'bg-green-100 text-green-700',
+    tasks: ['Check In', 'Experiment Video', 'Lab Report', 'Quiz']
+  },
+  { 
+    id: 'social', 
+    label: 'Social Studies', 
+    icon: <Globe2 className="w-8 h-8 text-purple-600" />, 
+    color: 'from-purple-300 to-violet-200', 
+    borderColor: 'border-purple-200',
+    btnColor: 'bg-purple-100 text-purple-700',
+    tasks: ['Check In', 'Map Activity', 'Reading', 'Questions']
+  },
+  { 
+    id: 'art', 
+    label: 'Art', 
+    icon: <Palette className="w-8 h-8 text-orange-600" />, 
+    color: 'from-orange-300 to-amber-200', 
+    borderColor: 'border-orange-200',
+    btnColor: 'bg-orange-100 text-orange-700',
+    tasks: ['Check In', 'Creative Project']
+  },
+  { 
+    id: 'music', 
+    label: 'Music', 
+    icon: <Music className="w-8 h-8 text-teal-600" />, 
+    color: 'from-teal-300 to-cyan-200', 
+    borderColor: 'border-teal-200',
+    btnColor: 'bg-teal-100 text-teal-700',
+    tasks: ['Check In', 'Listening Activity']
+  },
+  { 
+    id: 'pe', 
+    label: 'PE / Health', 
+    icon: <Activity className="w-8 h-8 text-red-600" />, 
+    color: 'from-red-300 to-orange-200', 
+    borderColor: 'border-red-200',
+    btnColor: 'bg-red-100 text-red-700',
+    tasks: ['Check In', 'Movement Break']
+  }
+];
+
+const POINTS = {
+  checkin: 2,
+  video: 5,
+  assignment: 10,
+  complete: 10,
+  worksheet: 5
+};
+
+// --- COMPONENT: CONFETTI ---
+const Confetti = ({ active }) => {
+  if (!active) return null;
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+      {[...Array(30)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute animate-fall"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `-5%`,
+            animationDuration: `${Math.random() * 2 + 1.5}s`,
+            animationDelay: `${Math.random() * 0.5}s`,
+            backgroundColor: ['#FFD700', '#FF69B4', '#00BFFF', '#32CD32', '#FF4500'][Math.floor(Math.random() * 5)],
+            width: `${Math.random() * 10 + 5}px`,
+            height: `${Math.random() * 10 + 5}px`,
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            transform: `rotate(${Math.random() * 360}deg)`
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState({});
+  const [history, setHistory] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [alertPopup, setAlertPopup] = useState(null);
+   
+  // VIEW MODES: 'student', 'pin_entry', 'parent'
+  const [viewMode, setViewMode] = useState('student');
+  const [pinInput, setPinInput] = useState("");
+   
+  // Student Focus State
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [focusTask, setFocusTask] = useState(null);
+  const [isStudentLogOpen, setIsStudentLogOpen] = useState(false); 
+   
+  // Interactive Task State (Local only)
+  const [taskInput, setTaskInput] = useState("");
+  const [mathProblem, setMathProblem] = useState(null);
+
+  // Parent Interaction State
+  const [rejectModal, setRejectModal] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [newGoal, setNewGoal] = useState(DEFAULT_GOAL);
+  const [viewingHistoryLog, setViewingHistoryLog] = useState(null); 
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [expandedSubjects, setExpandedSubjects] = useState({}); // For Schedule Modal
+
+  // --- AUTH & SYNC ---
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Authentication Error:", error);
+        setAuthError(error.message);
+      }
+    };
+    initAuth();
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        if (u) setAuthError(null);
+    });
+    return () => unsubAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+    const unsubData = onSnapshot(logRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const newData = docSnap.data();
+        setData(newData);
+        setNewGoal(newData.dailyGoal || DEFAULT_GOAL);
+        setLoading(false);
+
+        if (viewMode === 'student' && newData.latestAlert) {
+            const seenAlerts = JSON.parse(localStorage.getItem('seenAlerts') || '[]');
+            if (!seenAlerts.includes(newData.latestAlert.id)) {
+                setAlertPopup(newData.latestAlert);
+                localStorage.setItem('seenAlerts', JSON.stringify([...seenAlerts, newData.latestAlert.id]));
+            }
+        }
+      } else {
+        // Initialize defaults
+        const allSubjectIds = SUBJECTS.map(s => s.id);
+        const allTaskKeys = [];
+        SUBJECTS.forEach(s => s.tasks.forEach(t => allTaskKeys.push(getTaskKey(s.id, t))));
+        
+        setDoc(logRef, { 
+            points: 0, 
+            dailyGoal: DEFAULT_GOAL, 
+            activityLog: [],
+            visibleSubjects: allSubjectIds,
+            visibleTasks: allTaskKeys 
+        }).then(() => {
+          setData({ 
+              points: 0, 
+              dailyGoal: DEFAULT_GOAL, 
+              activityLog: [], 
+              visibleSubjects: allSubjectIds, 
+              visibleTasks: allTaskKeys
+          });
+          setLoading(false);
+        });
+      }
+    }, (error) => {
+       console.error("Data Sync Error:", error);
+       if (error.code === 'permission-denied') {
+          setAuthError("Permission Denied: Check Firestore Security Rules.");
+       }
+    });
+
+    const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', SETTINGS_COLLECTION, 'global');
+    const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) setSettings(docSnap.data());
+    });
+
+    return () => { unsubData(); unsubSettings(); };
+  }, [user, dateStr, viewMode]);
+
+  // Fetch History when entering Parent Mode
+  useEffect(() => {
+    if (viewMode === 'parent' && user) {
+        const fetchHistory = async () => {
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION));
+            const querySnapshot = await getDocs(q);
+            const hist = [];
+            querySnapshot.forEach((doc) => {
+                hist.push({ date: doc.id, ...doc.data() });
+            });
+            hist.sort((a,b) => new Date(b.date) - new Date(a.date));
+            setHistory(hist);
+        };
+        fetchHistory();
+    }
+  }, [viewMode, user]);
+
+  // --- HELPERS ---
+  const getTaskKey = (subId, taskName) => {
+    const cleanName = taskName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    return `${subId}_${cleanName}`;
+  };
+  
+  const isSubjectVisible = (subId) => {
+      if (!data.visibleSubjects) return true; 
+      return data.visibleSubjects.includes(subId);
+  };
+
+  const isTaskVisible = (subId, taskName) => {
+      const key = getTaskKey(subId, taskName);
+      if (!data.visibleTasks) return true; // Default to true if field missing
+      return data.visibleTasks.includes(key);
+  };
+
+  const calculateSubjectProgress = (sub, dataset = data) => {
+    const visibleSubTasks = sub.tasks.filter(t => isTaskVisible(sub.id, t));
+    const totalSteps = visibleSubTasks.length;
+    if (totalSteps === 0) return 100;
+
+    let completed = 0;
+    visibleSubTasks.forEach(t => { 
+        if (dataset[getTaskKey(sub.id, t)]) completed++; 
+    });
+    return Math.round((completed / totalSteps) * 100);
+  };
+
+  // --- ACTIONS ---
+  const triggerConfetti = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 2500);
+  };
+
+  const updateDailyGoal = async () => {
+      if(!user) return;
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+      await updateDoc(logRef, { dailyGoal: parseInt(newGoal) });
+      alert("Daily goal updated!");
+  };
+
+  const toggleSubjectVisibility = async (subId) => {
+      if(!user) return;
+      const currentVisible = data.visibleSubjects || SUBJECTS.map(s => s.id);
+      let newVisible;
+      if (currentVisible.includes(subId)) {
+          newVisible = currentVisible.filter(id => id !== subId);
+      } else {
+          newVisible = [...currentVisible, subId];
+      }
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+      await updateDoc(logRef, { visibleSubjects: newVisible });
+  };
+
+  const toggleTaskVisibility = async (subId, taskName) => {
+      if(!user) return;
+      const key = getTaskKey(subId, taskName);
+      
+      let currentVisible = data.visibleTasks;
+      if (!currentVisible) {
+          currentVisible = [];
+          SUBJECTS.forEach(s => s.tasks.forEach(t => currentVisible.push(getTaskKey(s.id, t))));
+      }
+
+      let newVisible;
+      if (currentVisible.includes(key)) {
+          newVisible = currentVisible.filter(k => k !== key);
+      } else {
+          newVisible = [...currentVisible, key];
+      }
+
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+      await updateDoc(logRef, { visibleTasks: newVisible });
+  };
+
+  const completeTask = async (subId, taskName, pointValue) => {
+    if (!user) return;
+    const key = getTaskKey(subId, taskName);
+    
+    if (data[key]) return; 
+
+    const newPoints = (data.points || 0) + pointValue;
+    const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+    
+    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const logEntry = {
+        type: 'completion',
+        task: taskName,
+        subject: subId,
+        points: pointValue,
+        time: timeString,
+        id: Date.now() 
+    };
+
+    const currentLog = data.activityLog || [];
+
+    await updateDoc(logRef, { 
+        [key]: true, 
+        [`${key}_flagged`]: deleteField(),
+        points: newPoints,
+        [`${key}_time`]: timeString,
+        activityLog: [...currentLog, logEntry]
+    });
+    
+    triggerConfetti();
+    setTimeout(() => {
+        setFocusTask(null);
+    }, 1000);
+  };
+
+  const flagTask = async (subId, taskName) => {
+      if(!user) return;
+      const key = getTaskKey(subId, taskName);
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+      
+      await updateDoc(logRef, {
+          [`${key}_flagged`]: true,
+          [key]: false 
+      });
+      
+      setFocusTask(null); 
+  };
+
+  const resolveFlag = async (subId, taskName, points, action) => {
+      const key = getTaskKey(subId, taskName);
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+
+      if (action === 'approve') {
+          const newPoints = (data.points || 0) + points;
+          const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const logEntry = {
+            type: 'completion',
+            task: taskName,
+            subject: subId,
+            points: points,
+            time: timeString + " (Resolved)",
+            id: Date.now()
+          };
+          const currentLog = data.activityLog || [];
+          
+          await updateDoc(logRef, {
+              [key]: true,
+              [`${key}_flagged`]: deleteField(),
+              points: newPoints,
+              [`${key}_time`]: timeString,
+              activityLog: [...currentLog, logEntry]
+          });
+      } else {
+          await updateDoc(logRef, {
+              [`${key}_flagged`]: deleteField()
+          });
+      }
+  };
+
+  const undoTask = async (subId, taskName, pointValue) => {
+      if (!user) return;
+      if(!confirm("Did you click this by mistake? This will undo the points.")) return;
+
+      const key = getTaskKey(subId, taskName);
+      const newPoints = Math.max(0, (data.points || 0) - pointValue);
+      const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+
+      let logRemoved = false;
+      const currentLog = data.activityLog || [];
+      const newLog = [...currentLog].reverse().filter(entry => {
+          if (!logRemoved && entry.task === taskName && entry.subject === subId && entry.type === 'completion') {
+              logRemoved = true;
+              return false;
+          }
+          return true;
+      }).reverse();
+
+      await updateDoc(logRef, {
+          [key]: false,
+          points: newPoints,
+          [`${key}_time`]: deleteField(),
+          activityLog: newLog
+      });
+  };
+
+  const handleRejectTask = async () => {
+    if (!user || !rejectModal) return;
+    
+    if (!rejectReason.trim()) {
+        alert("Please enter a reason for the deduction.");
+        return;
+    }
+
+    const { subId, taskName, points } = rejectModal;
+    const key = getTaskKey(subId, taskName);
+    const subjectLabel = SUBJECTS.find(s => s.id === subId)?.label || "Assignment";
+    
+    const newPoints = Math.max(0, (data.points || 0) - points);
+    const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr);
+    
+    const logEntry = {
+        type: 'deduction',
+        task: taskName,
+        subject: subId,
+        points: -points,
+        reason: rejectReason,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const currentLog = data.activityLog || [];
+
+    await updateDoc(logRef, { 
+        [key]: false, 
+        points: newPoints,
+        activityLog: [...currentLog, logEntry],
+        latestAlert: {
+            id: Date.now(),
+            type: 'deduction',
+            amount: -points,
+            message: rejectReason,
+            task: taskName,
+            subjectId: subId,
+            subjectLabel: subjectLabel,
+            timestamp: new Date().toISOString()
+        }
+    });
+
+    setRejectModal(null);
+    setRejectReason("");
+  };
+
+  const handlePinSubmit = () => {
+    const correctPin = settings.parent_pin || "1234";
+    if (pinInput === correctPin) {
+      setViewMode('parent');
+      setPinInput("");
+    } else {
+      alert("Incorrect PIN");
+      setPinInput("");
+    }
+  };
+
+  const startFocusTask = (task, points, icon, subId) => {
+      setFocusTask({ name: task, points, icon, subId });
+  };
+
+  // --- DYNAMIC CONTENT RENDERER ---
+  const renderFocusContent = () => {
+      if (!focusTask) return null;
+      const t = focusTask.name.toLowerCase();
+
+      if (t.includes("check in")) {
+          return (
+              <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
+                  <div className="flex justify-center mb-2"><Clock className="w-16 h-16 text-blue-500" /></div>
+                  <h3 className="text-2xl font-black text-blue-900">Attendance Check</h3>
+                  <p className="text-blue-700 font-medium text-xl">1. Open the class website.<br/>2. Click "Check In".<br/>3. Come back here.</p>
+              </div>
+          );
+      }
+      if (t.includes("video") || t.includes("lesson")) {
+          return (
+              <div className="w-full bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-8 text-center space-y-4">
+                  <div className="flex justify-center mb-2"><PlayCircle className="w-16 h-16 text-indigo-500" /></div>
+                  <h3 className="text-2xl font-black text-indigo-900">Watch the Lesson</h3>
+                  <p className="text-indigo-700 font-medium text-xl">Watch the whole video carefully.<br/>Use headphones if you need to.</p>
+              </div>
+          );
+      }
+      return (
+          <div className="w-full bg-orange-50 border-2 border-orange-200 rounded-3xl p-8 text-center space-y-4">
+               <div className="flex justify-center mb-2"><ClipboardCheck className="w-16 h-16 text-orange-500" /></div>
+               <h3 className="text-2xl font-black text-orange-900">Let's Work!</h3>
+               <p className="text-orange-700 font-medium text-xl">Focus on this one task.<br/>Take your time.</p>
+          </div>
+      );
+  };
+
+  const globalStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+    body { font-family: 'Nunito', sans-serif; }
+    .bg-pastel-gradient {
+      background: linear-gradient(135deg, #fff1f2 0%, #eff6ff 50%, #f0fdf4 100%);
+    }
+    .card-shadow { box-shadow: 6px 6px 0px rgba(0,0,0,0.1); }
+    .btn-press:active { transform: translateY(2px); box-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+    .animate-fall { animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(105vh) rotate(720deg); } }
+  `;
+
+  if (loading || authError) {
+      return (
+          <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 p-6 text-center">
+              {authError ? (
+                  <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md border-2 border-red-200">
+                      <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                      <h2 className="text-2xl font-black text-slate-800 mb-2">Configuration Error</h2>
+                      <p className="text-slate-600 mb-6 font-medium">We couldn't connect to your Firebase database.</p>
+                      <div className="bg-slate-100 p-4 rounded-xl text-left text-xs font-mono text-slate-600 mb-6 overflow-x-auto">{authError}</div>
+                      <div className="text-sm text-slate-500"><strong>How to fix:</strong><br/>1. Go to Firebase Console {'>'} Authentication.<br/>2. Click "Sign-in method" tab.<br/>3. Enable <strong>Anonymous</strong> provider.<br/>4. Go to Firestore Database {'>'} Rules and ensure they allow read/write.</div>
+                  </div>
+              ) : ( <div className="text-blue-500 font-bold text-lg animate-pulse">Loading Gabriel's Space...</div> )}
+          </div>
+      );
+  }
+
+  // --- PIN ENTRY VIEW ---
+  if (viewMode === 'pin_entry') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <style>{globalStyles}</style>
+        <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
+          <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-6"><Lock className="w-8 h-8 text-slate-700" /></div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">Parent Access</h2>
+          <p className="text-slate-500 mb-6">Enter your 4-digit PIN.</p>
+          <input type="password" maxLength={4} value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="w-full text-center text-4xl font-bold tracking-[1em] border-b-4 border-slate-200 py-4 mb-8 outline-none focus:border-blue-500 transition-colors text-slate-800" autoFocus />
+          <div className="flex flex-col gap-3">
+            <button onClick={handlePinSubmit} className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold text-lg hover:bg-slate-700 transition-all btn-press">Unlock Mode</button>
+            <button onClick={() => setViewMode('student')} className="w-full py-4 bg-slate-100 text-slate-600 rounded-xl font-bold text-lg hover:bg-slate-200 transition-all">Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- PARENT DASHBOARD ---
+  if (viewMode === 'parent') {
+    return (
+      <div className="min-h-screen bg-slate-100 text-slate-800 pb-20">
+        <style>{globalStyles}</style>
+        <header className="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-50">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500 p-2 rounded-lg"><UserCog className="w-6 h-6" /></div>
+              <div><h1 className="text-xl font-bold">Parent Dashboard</h1><p className="text-xs text-slate-400">Managing: {STUDENT_NAME}</p></div>
+            </div>
+            <button onClick={() => setViewMode('student')} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-slate-600">Exit to Student Mode</button>
+          </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto p-6 space-y-8">
+          {/* Controls Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Viewing Date</label>
+                <input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} className="font-bold text-lg text-slate-800 outline-none"/>
+              </div>
+              <button onClick={() => setDateStr(new Date().toISOString().split('T')[0])} className="text-xs bg-blue-50 text-blue-600 font-bold px-3 py-1 rounded-full">Today</button>
+            </div>
+            
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Set Daily Goal</label>
+                <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-indigo-500" />
+                    <input type="number" value={newGoal} onChange={(e) => setNewGoal(e.target.value)} className="font-black text-2xl w-20 border-b-2 border-slate-200 outline-none focus:border-indigo-500"/>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                  {/* Keep the Schedule Modal as a backup, but functionality is now also inline */}
+                  <button onClick={() => setIsScheduleModalOpen(true)} className="bg-blue-100 text-blue-700 font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-200 flex items-center gap-1"><CalendarCheck className="w-4 h-4"/> Schedule</button>
+                  <button onClick={updateDailyGoal} className="bg-slate-800 text-white font-bold px-4 py-2 rounded-xl text-sm">Save</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Score vs Goal */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+             <div className="flex justify-between items-end mb-2">
+                <span className="font-bold text-slate-500">Progress</span>
+                <span className="font-black text-2xl text-slate-800">{data.points || 0} / <span className="text-slate-400">{data.dailyGoal || DEFAULT_GOAL}</span></span>
+             </div>
+             <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${Math.min(100, ((data.points || 0) / (data.dailyGoal || DEFAULT_GOAL)) * 100)}%` }} />
+             </div>
+          </div>
+
+          {/* Today's Live Activity */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+             <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+                <ScrollText className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-black text-slate-700">Today's Live Activity</h2>
+             </div>
+             <div className="max-h-80 overflow-y-auto p-4 space-y-4 bg-slate-50"> 
+                {data.activityLog && data.activityLog.length > 0 ? (
+                    SUBJECTS.map(sub => {
+                        const subLogs = data.activityLog.filter(l => l.subject === sub.id).reverse();
+                        if (subLogs.length === 0) return null;
+
+                        return (
+                            <div key={sub.id} className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3 border-b border-slate-50 pb-2">
+                                    <div className={`p-1.5 rounded-lg bg-gradient-to-br ${sub.color} text-white`}>
+                                        {React.cloneElement(sub.icon, { className: "w-3 h-3" })}
+                                    </div>
+                                    <h4 className="font-bold text-slate-700 text-xs uppercase tracking-wider">{sub.label}</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    {subLogs.map((entry, idx) => (
+                                        <div key={idx} className={`p-2 rounded-lg border-l-4 text-sm ${entry.type === 'deduction' ? 'bg-red-50 border-red-400' : 'bg-slate-50 border-green-400'}`}>
+                                            <div className="flex justify-between items-start">
+                                                <span className="font-bold text-slate-700">{entry.task}</span>
+                                                <span className="text-[10px] font-mono text-slate-400">{entry.time}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className={`text-xs font-black ${entry.type === 'deduction' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {entry.points > 0 ? '+' : ''}{entry.points} PTS
+                                                </span>
+                                                {entry.reason && <span className="text-xs text-slate-500 italic">- "{entry.reason}"</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })
+                ) : (
+                    <p className="text-center text-slate-400 text-sm py-4">No activity yet today.</p>
+                )}
+             </div>
+          </div>
+
+          {/* Assignment Verification */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-green-600" />
+              <div>
+                 <h2 className="text-lg font-black text-slate-700">Assignments Verification</h2>
+                 <p className="text-sm text-slate-500">Tasks marked done by student appear green. Click <strong>Reject</strong> to deduct points. <br/>Use the <strong>Eye Icon</strong> to Hide/Show Subjects and Tasks for the student.</p>
+              </div>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {SUBJECTS.map(sub => {
+                const isVisible = isSubjectVisible(sub.id);
+                const progress = calculateSubjectProgress(sub);
+                return (
+                  <div key={sub.id} className={`p-6 transition-colors ${isVisible ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-60'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg bg-gradient-to-br ${sub.color} text-slate-800`}>
+                                {React.cloneElement(sub.icon, { className: "w-5 h-5" })}
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                    {sub.label}
+                                    {!isVisible && <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full uppercase">Hidden</span>}
+                                </h3>
+                                <div className="text-xs font-bold text-slate-400">{progress}% Completed</div>
+                            </div>
+                        </div>
+                        {/* HIDE SUBJECT TOGGLE */}
+                        <button 
+                            onClick={() => toggleSubjectVisibility(sub.id)} 
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title={isVisible ? "Hide Subject from Student" : "Show Subject to Student"}
+                        >
+                            {isVisible ? <Eye className="w-5 h-5"/> : <EyeOff className="w-5 h-5"/>}
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {sub.tasks.map(task => {
+                        const key = getTaskKey(sub.id, task);
+                        const isDone = data[key];
+                        const isFlagged = data[`${key}_flagged`];
+                        const isVis = isTaskVisible(sub.id, task);
+                        const timestamp = data[`${key}_time`]; 
+                        let points = POINTS.checkin;
+                        if (task.includes("Video")) points = POINTS.video;
+                        if (task.includes("Assignment")) points = POINTS.assignment;
+                        if (task.includes("Worksheet")) points = POINTS.worksheet;
+
+                        let bgClass = 'bg-white border-slate-200';
+                        if (!isVis) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
+                        else if (isDone) bgClass = 'bg-green-50 border-green-300 shadow-sm';
+                        else if (isFlagged) bgClass = 'bg-yellow-50 border-yellow-300 shadow-sm';
+                        else bgClass = 'bg-white border-slate-200 opacity-70';
+
+                        return (
+                          <div key={key} className={`p-3 rounded-xl border flex flex-col justify-between gap-3 select-none transition-all ${bgClass}`}>
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-2">
+                                    <div className={`mt-1 w-6 h-6 rounded flex items-center justify-center border transition-colors ${isDone ? 'bg-green-500 border-green-500' : isFlagged ? 'bg-yellow-400 border-yellow-400' : 'bg-white border-slate-300'}`}>
+                                      {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                      {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
+                                    </div>
+                                    <div>
+                                        <span className={`text-sm font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
+                                            {task} {!isVis && "(Hidden)"}
+                                        </span>
+                                        <div className="flex flex-wrap gap-2 text-[10px] font-bold mt-1">
+                                            <span className="uppercase text-slate-400">{points} PTS</span>
+                                            {isDone && timestamp && <span className="text-blue-500">@{timestamp}</span>}
+                                            {isFlagged && <span className="text-yellow-600 uppercase">NEEDS HELP</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* HIDE TASK TOGGLE */}
+                                <button 
+                                    onClick={() => toggleTaskVisibility(sub.id, task)} 
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                                    title={isVis ? "Hide Task" : "Show Task"}
+                                >
+                                    {isVis ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
+                                </button>
+                            </div>
+                            
+                            <div className="flex items-center justify-end gap-2 border-t border-slate-100/50 pt-2 mt-auto">
+                                {/* Actions for Parent */}
+                                {isDone && (
+                                    <button onClick={() => setRejectModal({ subId: sub.id, taskName: task, points })} className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">
+                                        <ThumbsDown className="w-3 h-3" /> Reject
+                                    </button>
+                                )}
+                                
+                                {/* FLAG RESOLUTION ACTIONS */}
+                                {isFlagged && (
+                                    <div className="flex gap-1">
+                                        <button onClick={() => resolveFlag(sub.id, task, points, 'approve')} className="bg-green-100 text-green-700 p-2 rounded-lg hover:bg-green-200" title="Mark Done (Award Points)">
+                                            <Check className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => resolveFlag(sub.id, task, points, 'reset')} className="bg-slate-100 text-slate-600 p-2 rounded-lg hover:bg-slate-200" title="Reset (Try Again)">
+                                            <RotateCcw className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+             <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+                <History className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-black text-slate-700">Daily Log History</h2>
+             </div>
+             <div className="overflow-x-auto">
+                 <table className="w-full text-sm text-left">
+                     <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                         <tr>
+                             <th className="px-6 py-3">Date</th>
+                             <th className="px-6 py-3">Score</th>
+                             <th className="px-6 py-3">Goal</th>
+                             <th className="px-6 py-3">Actions</th>
+                         </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-100">
+                         {history.length === 0 ? (
+                             <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400">No logs found yet.</td></tr>
+                         ) : (
+                             history.map((log) => (
+                                 <tr key={log.date} className="hover:bg-slate-50">
+                                     <td className="px-6 py-4 font-bold text-slate-800">
+                                         {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                     </td>
+                                     <td className="px-6 py-4">
+                                         <span className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full">{log.points || 0}</span>
+                                     </td>
+                                     <td className="px-6 py-4 font-medium text-slate-500">
+                                         {log.dailyGoal || DEFAULT_GOAL}
+                                     </td>
+                                     <td className="px-6 py-4">
+                                         <button onClick={() => setViewingHistoryLog(log)} className="text-indigo-600 font-bold hover:underline flex items-center gap-1"><List className="w-4 h-4"/> Details</button>
+                                     </td>
+                                 </tr>
+                             ))
+                         )}
+                     </tbody>
+                 </table>
+             </div>
+          </div>
+
+          <div className="border-t pt-8 mt-8">
+             <button onClick={async () => { if(confirm("Reset today's points and progress?")) { const logRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, dateStr); await setDoc(logRef, { points: 0, worksheets: 0, dailyGoal: DEFAULT_GOAL, activityLog: [], visibleSubjects: SUBJECTS.map(s => s.id) }); } }} className="text-red-500 font-bold text-sm flex items-center gap-2 hover:text-red-700">
+                <Trash2 className="w-4 h-4" /> Reset Today's Data
+             </button>
+          </div>
+        </main>
+
+        {/* DETAILS MODAL */}
+        {viewingHistoryLog && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setViewingHistoryLog(null)} />
+                <div className="bg-white rounded-3xl w-full max-w-lg p-6 relative z-10 shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-black text-slate-800">Activity Log</h3>
+                        <button onClick={() => setViewingHistoryLog(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="overflow-y-auto flex-1 space-y-4 pr-2">
+                        {viewingHistoryLog.activityLog && viewingHistoryLog.activityLog.length > 0 ? (
+                            viewingHistoryLog.activityLog.map((entry, idx) => (
+                                <div key={idx} className={`p-4 rounded-xl border-l-4 ${entry.type === 'deduction' ? 'bg-red-50 border-red-500' : 'bg-green-50 border-green-500'}`}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="font-bold text-slate-800">{entry.task}</span>
+                                        <span className="text-xs font-mono text-slate-400">{entry.time}</span>
+                                    </div>
+                                    <div className="text-sm flex items-center gap-2">
+                                        <span className={`font-black ${entry.type === 'deduction' ? 'text-red-600' : 'text-green-600'}`}>
+                                            {entry.points > 0 ? '+' : ''}{entry.points} PTS
+                                        </span>
+                                        {entry.reason && <span className="text-slate-600 italic">- "{entry.reason}"</span>}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-slate-400 py-10">No detailed activity recorded for this day.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* SCHEDULE MANAGEMENT MODAL */}
+        {isScheduleModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsScheduleModalOpen(false)} />
+                <div className="bg-white rounded-3xl w-full max-w-sm p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-black text-slate-800">Plan Today's Schedule</h3>
+                        <button onClick={() => setIsScheduleModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="space-y-3 overflow-y-auto flex-1 pr-2">
+                        {SUBJECTS.map(sub => {
+                            const isSubVisible = isSubjectVisible(sub.id);
+                            const isExpanded = expandedSubjects[sub.id];
+                            
+                            return (
+                                <div key={sub.id} className={`rounded-xl border-2 transition-all ${isSubVisible ? 'bg-white border-blue-100' : 'bg-slate-50 border-slate-100 opacity-70'}`}>
+                                    {/* SUBJECT HEADER */}
+                                    <div className="flex items-center justify-between p-3">
+                                        <button 
+                                            onClick={() => setExpandedSubjects(prev => ({...prev, [sub.id]: !prev[sub.id]}))}
+                                            className="flex items-center gap-3 flex-1 text-left"
+                                        >
+                                            <div className={`p-2 rounded-lg ${isSubVisible ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
+                                                {sub.icon}
+                                            </div>
+                                            <span className={`font-bold ${isSubVisible ? 'text-slate-800' : 'text-slate-500'}`}>{sub.label}</span>
+                                            {isSubVisible && (isExpanded ? <ChevronDown className="w-4 h-4 text-slate-400"/> : <ChevronRight className="w-4 h-4 text-slate-400"/>)}
+                                        </button>
+                                        
+                                        <button onClick={() => toggleSubjectVisibility(sub.id)} className="p-2">
+                                            {isSubVisible ? <Eye className="w-5 h-5 text-blue-500"/> : <EyeOff className="w-5 h-5 text-slate-400"/>}
+                                        </button>
+                                    </div>
+
+                                    {/* TASKS LIST (If expanded and subject visible) */}
+                                    {isSubVisible && isExpanded && (
+                                        <div className="px-3 pb-3 space-y-2 border-t border-blue-50 pt-2">
+                                            {sub.tasks.map(task => {
+                                                const isTVisible = isTaskVisible(sub.id, task);
+                                                return (
+                                                    <div key={task} className="flex items-center justify-between pl-4 pr-2 py-1">
+                                                        <span className={`text-sm font-medium ${isTVisible ? 'text-slate-600' : 'text-slate-400 line-through'}`}>{task}</span>
+                                                        <button onClick={() => toggleTaskVisibility(sub.id, task)}>
+                                                            {isTVisible ? <div className="w-8 h-5 bg-green-500 rounded-full relative"><div className="w-3 h-3 bg-white rounded-full absolute right-1 top-1 shadow-sm"/></div> : <div className="w-8 h-5 bg-slate-300 rounded-full relative"><div className="w-3 h-3 bg-white rounded-full absolute left-1 top-1 shadow-sm"/></div>}
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <button onClick={() => setIsScheduleModalOpen(false)} className="w-full mt-4 py-3 bg-slate-800 text-white font-bold rounded-xl">Done</button>
+                </div>
+            </div>
+        )}
+
+        {/* REJECT MODAL */}
+        {rejectModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setRejectModal(null)} />
+                <div className="bg-white rounded-2xl w-full max-w-sm p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <h3 className="text-xl font-black text-slate-800 mb-2">Reject Assignment?</h3>
+                    <p className="text-sm text-slate-500 mb-4">This will mark <strong>{rejectModal.taskName}</strong> as incomplete and deduct <strong>{rejectModal.points} points</strong>.</p>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Reason (Required)</label>
+                    <input type="text" autoFocus placeholder="e.g. Incomplete work, didn't watch video..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl mb-6 outline-none focus:border-red-400"/>
+                    <div className="flex gap-3">
+                        <button onClick={() => setRejectModal(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+                        <button onClick={handleRejectTask} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200">Confirm Deduction</button>
+                    </div>
+                </div>
+            </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- STUDENT DASHBOARD ---
+  // (Main View for Gabriel)
+  return (
+    <div className="min-h-screen bg-pastel-gradient text-slate-800 pb-12 selection:bg-pink-200">
+      <Confetti active={showConfetti} />
+      <style>{globalStyles}</style>
+      
+      {/* Top Bar - Compact */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-2 shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                <Gamepad2 className="w-6 h-6" />
+             </div>
+             <div>
+                <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Gabriel's Space</h1>
+                <p className="text-xs font-bold text-slate-400">Let's learn!</p>
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+             <button onClick={() => setViewMode('pin_entry')} className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 hover:scale-105 transition-transform">
+                <Settings className="w-5 h-5 text-slate-400" />
+             </button>
+             
+             <div className="flex items-center gap-2 bg-white pl-3 pr-1 py-1 rounded-xl shadow-sm border border-slate-100">
+                <div className="text-right">
+                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
+                   <div className="text-sm font-black text-slate-800 leading-none">{data.points || 0} / {data.dailyGoal || DEFAULT_GOAL}</div>
+                </div>
+                <div className="w-8 h-8 relative flex items-center justify-center">
+                   <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="16" cy="16" r="13" stroke="#f1f5f9" strokeWidth="3" fill="none" />
+                      <circle cx="16" cy="16" r="13" stroke="#8b5cf6" strokeWidth="3" fill="none" strokeDasharray="81" strokeDashoffset={81 - (81 * Math.min(1, (data.points || 0) / (data.dailyGoal || DEFAULT_GOAL)))} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                   </svg>
+                   <Trophy className="w-3 h-3 text-yellow-500 absolute" />
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto p-4">
+        {/* Main Grid: Subjects - COMPACT MODE */}
+        {!selectedSubject && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {SUBJECTS.map((sub, index) => {
+                    if (!isSubjectVisible(sub.id)) return null;
+                    
+                    const progress = calculateSubjectProgress(sub);
+                    const isComplete = progress === 100;
+                    
+                    // CALCULATE VISIBLE TASKS ONLY
+                    const visibleTaskCount = sub.tasks.filter(t => isTaskVisible(sub.id, t)).length;
+                    
+                    return (
+                        <button 
+                           key={sub.id} 
+                           onClick={() => setSelectedSubject(sub)}
+                           className={`group relative bg-white rounded-2xl p-4 text-left border-b-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${sub.borderColor} ${isComplete ? 'opacity-70' : ''} min-h-[140px] flex flex-col justify-between`}
+                           style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                           <div className="flex justify-between items-start mb-2">
+                               <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${sub.color} text-slate-800 shadow-sm group-hover:shadow-md transition-shadow`}>
+                                  {React.cloneElement(sub.icon, { className: "w-6 h-6" })}
+                               </div>
+                               <div className={`text-[10px] font-black px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                  {isComplete ? 'DONE' : `${progress}%`}
+                               </div>
+                           </div>
+                           
+                           <div>
+                               <h2 className="text-lg font-black text-slate-800 leading-tight mb-1">{sub.label}</h2>
+                               <p className="text-slate-400 font-bold text-xs">{visibleTaskCount} Activities</p>
+                           </div>
+                           
+                           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
+                              <div className={`h-full bg-gradient-to-r ${sub.color}`} style={{ width: `${progress}%` }} />
+                           </div>
+                        </button>
+                    )
+                })}
+            </div>
+        )}
+
+        {/* Subject Detail View - COMPACT MODE */}
+        {selectedSubject && (
+            <div className="animate-in fade-in zoom-in-95 duration-300">
+                <button onClick={() => setSelectedSubject(null)} className="mb-4 flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm text-sm">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                
+                <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-slate-100">
+                    <div className={`p-6 bg-gradient-to-r ${selectedSubject.color}`}>
+                        <div className="flex items-center gap-3 text-slate-900">
+                            <div className="p-2 bg-white/50 backdrop-blur-sm rounded-xl shadow-sm">
+                                {React.cloneElement(selectedSubject.icon, { className: "w-8 h-8" })}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black">{selectedSubject.label}</h2>
+                                <p className="font-bold opacity-75 text-sm">Let's finish these tasks!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 grid gap-3">
+                        {selectedSubject.tasks.map((task, i) => {
+                            if (!isTaskVisible(selectedSubject.id, task)) return null;
+
+                            const key = getTaskKey(selectedSubject.id, task);
+                            const isDone = data[key];
+                            let points = POINTS.checkin;
+                            if (task.includes("Video")) points = POINTS.video;
+                            if (task.includes("Assignment")) points = POINTS.assignment;
+                            
+                            if (isDone) {
+                                return (
+                                    <div key={i} className="flex items-center justify-between p-3 bg-green-50 border-2 border-green-200 rounded-xl opacity-80">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center">
+                                                <CheckCircle2 className="w-5 h-5 text-green-700" />
+                                            </div>
+                                            <span className="text-base font-bold text-green-900 line-through decoration-green-500/50">{task}</span>
+                                        </div>
+                                        <button onClick={() => undoTask(selectedSubject.id, task, points)} className="text-xs font-bold text-green-600 underline px-2">Undo</button>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <button 
+                                    key={i}
+                                    onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
+                                    className="flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-xl hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group text-left"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                                            <div className="w-3 h-3 rounded-full bg-slate-300 group-hover:bg-indigo-500 transition-colors" />
+                                        </div>
+                                        <div>
+                                            <span className="text-base font-bold text-slate-800 group-hover:text-indigo-900 transition-colors">{task}</span>
+                                            <div className="text-xs font-bold text-slate-400 group-hover:text-indigo-400">Earn {points} Points</div>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-400" />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        )}
+      </main>
+
+      {/* FOCUS MODE MODAL */}
+      {focusTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+              <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                          {focusTask.icon}
+                          <h2 className="text-2xl font-black text-slate-800">{focusTask.name}</h2>
+                      </div>
+                      <button onClick={() => setFocusTask(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                          <X className="w-6 h-6 text-slate-600" />
+                      </button>
+                  </div>
+                  
+                  {/* Content Body */}
+                  <div className="p-8 flex flex-col items-center gap-8">
+                      {renderFocusContent()}
+                      
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-4 w-full">
+                          <button 
+                            onClick={() => flagTask(focusTask.subId, focusTask.name)}
+                            className="py-4 rounded-2xl bg-yellow-100 text-yellow-700 font-black text-lg hover:bg-yellow-200 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
+                          >
+                            <HelpCircle className="w-8 h-8" />
+                            <span>I Need Help</span>
+                          </button>
+                          
+                          <button 
+                            onClick={() => completeTask(focusTask.subId, focusTask.name, focusTask.points)}
+                            className="py-4 rounded-2xl bg-green-500 text-white font-black text-lg shadow-lg shadow-green-200 hover:bg-green-600 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
+                          >
+                            <CheckCircle2 className="w-8 h-8" />
+                            <span>I'm Done!</span>
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* ALERT POPUP */}
+      {alertPopup && (
+          <div className="fixed bottom-6 right-6 z-[60] max-w-sm w-full animate-in slide-in-from-right duration-500">
+              <div className="bg-white rounded-2xl shadow-2xl border-l-8 border-red-500 p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <AlertCircle className="w-32 h-32 text-red-500" />
+                  </div>
+                  <div className="relative z-10">
+                      <div className="flex items-start gap-4 mb-3">
+                          <div className="bg-red-100 p-3 rounded-full">
+                              <Megaphone className="w-6 h-6 text-red-600" />
+                          </div>
+                          <div>
+                              <h3 className="text-lg font-black text-red-600">Teacher Alert!</h3>
+                              <p className="font-bold text-slate-700 text-sm">Action Required</p>
+                          </div>
+                      </div>
+                      <div className="bg-red-50 rounded-xl p-3 mb-4 border border-red-100">
+                           <p className="text-slate-800 font-bold text-sm">"{alertPopup.message}"</p>
+                           <p className="text-xs text-red-500 font-bold mt-1 uppercase tracking-wide">
+                               Points Deducted: {alertPopup.amount}
+                           </p>
+                      </div>
+                      <button 
+                        onClick={() => setAlertPopup(null)}
+                        className="w-full py-2 bg-slate-800 text-white font-bold rounded-lg text-sm hover:bg-slate-700"
+                      >
+                        Okay, I Understand
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+    </div>
+  );
+}
