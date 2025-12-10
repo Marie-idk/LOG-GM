@@ -15,21 +15,22 @@
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
     <style>
-        body { font-family: 'Nunito', sans-serif; }
+        /* Reverted to standard clean sans-serif font */
+        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         .bg-pastel-gradient {
             background: linear-gradient(135deg, #fff1f2 0%, #eff6ff 50%, #f0fdf4 100%);
         }
-        .card-shadow { box-shadow: 6px 6px 0px rgba(0,0,0,0.1); }
-        .btn-press:active { transform: translateY(2px); box-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        .btn-press:active { transform: translateY(2px); }
         .animate-fall { animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(105vh) rotate(720deg); } }
+        
+        /* Scrollbar hiding for cleaner UI */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-pastel-gradient min-h-screen">
+<body class="bg-pastel-gradient min-h-screen text-slate-800 selection:bg-pink-200">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -53,9 +54,9 @@
 
         const { useState, useEffect, createElement } = React;
 
-        // --- ICON COMPONENTS ---
+        // --- ICONS (Lucide Style) ---
         const IconBase = ({ d, className, ...props }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
                 {d}
             </svg>
         );
@@ -184,9 +185,6 @@
           }
         ];
 
-        // -----------------------------------------------------------
-        // 1. POINT VALUES (How much each type is worth)
-        // -----------------------------------------------------------
         const POINTS = {
           checkin: 2,
           video: 5,
@@ -201,12 +199,7 @@
           recap: 5
         };
 
-        // -----------------------------------------------------------
-        // 2. THE POINT CALCULATOR
-        // (This decides which point value to use based on the name)
-        // -----------------------------------------------------------
         const calculatePoints = (taskName) => {
-            // Check for specific words in the task name
             if (taskName.includes("Video")) return POINTS.video;
             if (taskName.includes("Assignment")) return POINTS.assignment;
             if (taskName.includes("Worksheet")) return POINTS.worksheet;
@@ -219,7 +212,6 @@
             if (taskName.includes("Recap")) return POINTS.recap; 
             if (taskName.includes("Game")) return POINTS.game;
             
-            // Default if nothing matches (Check In)
             return POINTS.checkin;
         };
 
@@ -264,11 +256,7 @@
             
           const [selectedSubject, setSelectedSubject] = useState(null);
           const [focusTask, setFocusTask] = useState(null);
-          const [isStudentLogOpen, setIsStudentLogOpen] = useState(false); 
             
-          const [taskInput, setTaskInput] = useState("");
-          const [mathProblem, setMathProblem] = useState(null);
-
           const [rejectModal, setRejectModal] = useState(null);
           const [rejectReason, setRejectReason] = useState("");
           const [newGoal, setNewGoal] = useState(DEFAULT_GOAL);
@@ -368,7 +356,7 @@
             const cleanName = taskName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
             return `${subId}_${cleanName}`;
           };
-           
+            
           const isSubjectVisible = (subId) => {
               if (!data.visibleSubjects) return true; 
               return data.visibleSubjects.includes(subId);
@@ -420,7 +408,7 @@
           const toggleTaskVisibility = async (subId, taskName) => {
               if(!user) return;
               const key = getTaskKey(subId, taskName);
-               
+                
               let currentVisible = data.visibleTasks;
               if (!currentVisible) {
                   currentVisible = [];
@@ -659,8 +647,8 @@
                   return (
                       <div className="w-full bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-8 text-center space-y-4">
                           <div className="flex justify-center mb-2"><PlayCircle className="w-16 h-16 text-indigo-500" /></div>
-                          <h3 className="text-2xl font-black text-indigo-900">Watch the Lesson</h3>
-                          <p className="text-indigo-700 font-medium text-xl">Watch the whole video carefully.<br/>Use headphones if you need to.</p>
+                          <h3 className="text-2xl font-black text-indigo-900">Review the Lesson</h3>
+                          <p className="text-indigo-700 font-medium text-xl">Pay attention.<br/>Use headphones if you need to.</p>
                       </div>
                   );
               }
@@ -671,7 +659,7 @@
                       <div className="w-full bg-green-50 border-2 border-green-200 rounded-3xl p-8 text-center space-y-4">
                            <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-green-600" /></div>
                            <h3 className="text-2xl font-black text-green-900">Reading Time</h3>
-                           <p className="text-green-700 font-medium text-xl">Open your book to Chapter 14.<br/>Read pages 130-145 quietly.</p>
+                           <p className="text-green-700 font-medium text-xl">Listen to Chapter 14.<br/>Pay attention.</p>
                       </div>
                   );
               }
@@ -682,7 +670,7 @@
                       <div className="w-full bg-purple-50 border-2 border-purple-200 rounded-3xl p-8 text-center space-y-4">
                            <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-purple-500" /></div>
                            <h3 className="text-2xl font-black text-purple-900">Quick Review</h3>
-                           <p className="text-purple-700 font-medium text-xl">Read the summary of the last chapter.<br/>Write down one thing you remember.</p>
+                           <p className="text-purple-700 font-medium text-xl">Review the recap.<br/>Take notes if needed.</p>
                       </div>
                   );
               }
@@ -693,7 +681,7 @@
                       <div className="w-full bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-8 text-center space-y-4">
                            <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-yellow-600" /></div>
                            <h3 className="text-2xl font-black text-yellow-900">Word Work</h3>
-                           <p className="text-yellow-700 font-medium text-xl">Review your 5 vocabulary words.<br/>Write a sentence for each one.</p>
+                           <p className="text-yellow-700 font-medium text-xl">Review your vocabulary words.<br/>Study the root and affixes.</p>
                       </div>
                   );
               }
@@ -715,7 +703,7 @@
                       <div className="w-full bg-teal-50 border-2 border-teal-200 rounded-3xl p-8 text-center space-y-4">
                            <div className="flex justify-center mb-2"><ClipboardCheck className="w-16 h-16 text-teal-600" /></div>
                            <h3 className="text-2xl font-black text-teal-900">Camera Time</h3>
-                           <p className="text-teal-700 font-medium text-xl">Take a clear picture of your work.<br/>Upload it to Google Classroom.</p>
+                           <p className="text-teal-700 font-medium text-xl">Submit your work.<br/>Upload via File Manager.</p>
                       </div>
                   );
               }
@@ -726,11 +714,20 @@
                       <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
                            <div className="flex justify-center mb-2"><CheckCircle2 className="w-16 h-16 text-blue-600" /></div>
                            <h3 className="text-2xl font-black text-blue-900">Almost There!</h3>
-                           <p className="text-blue-700 font-medium text-xl">Did you finish everything?<br/>Click the button below to finish!</p>
+                           <p className="text-blue-700 font-medium text-xl">Did you finish everything?<br/>select "Mark as Done" in Wix.</p>
                       </div>
                   );
               }
-
+             // 11. Math Specific Assignment (Must come before generic lesson rule)
+              if (t.includes("assignment") && focusTask.subId === 'math') {
+                  return (
+                      <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
+                          <div className="flex justify-center mb-2"><Calculator className="w-16 h-16 text-blue-600" /></div>
+                          <h3 className="text-2xl font-black text-blue-900">Math Lesson Time</h3>
+                          <p className="text-blue-700 font-medium text-xl">Grab a notebook to show your work.<br/>Solve the math problems.</p>
+                      </div>
+                  );
+             }
               // --- END CUSTOM DIRECTIONS ---
 
               return (
@@ -871,8 +868,8 @@
                     <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
                       <ShieldCheck className="w-5 h-5 text-green-600" />
                       <div>
-                         <h2 className="text-lg font-black text-slate-700">Assignments Verification</h2>
-                         <p className="text-sm text-slate-500">Tasks marked done by student appear green. Click <strong>Reject</strong> to deduct points. <br/>Use the <strong>Eye Icon</strong> to Hide/Show Subjects and Tasks for the student.</p>
+                          <h2 className="text-lg font-black text-slate-700">Assignments Verification</h2>
+                          <p className="text-sm text-slate-500">Tasks marked done by student appear green. Click <strong>Reject</strong> to deduct points. <br/>Use the <strong>Eye Icon</strong> to Hide/Show Subjects and Tasks for the student.</p>
                       </div>
                     </div>
                     <div className="divide-y divide-slate-100">
@@ -909,7 +906,7 @@
                                 const isFlagged = data[`${key}_flagged`];
                                 const isVis = isTaskVisible(sub.id, task);
                                 const timestamp = data[`${key}_time`]; 
-                                const points = calculatePoints(task); // <--- USING NEW CALCULATOR HERE
+                                const points = calculatePoints(task); 
 
                                 let bgClass = 'bg-white border-slate-200';
                                 if (!isVis) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
@@ -922,8 +919,8 @@
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-2">
                                             <div className={`mt-1 w-6 h-6 rounded flex items-center justify-center border transition-colors ${isDone ? 'bg-green-500 border-green-500' : isFlagged ? 'bg-yellow-400 border-yellow-400' : 'bg-white border-slate-300'}`}>
-                                              {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
-                                              {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
+                                                {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                                {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
                                             </div>
                                             <div>
                                                 <span className={`text-sm font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
@@ -974,44 +971,44 @@
                   </div>
 
                   <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                      <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
-                        <History className="w-5 h-5 text-indigo-600" />
-                        <h2 className="text-lg font-black text-slate-700">Daily Log History</h2>
-                      </div>
-                      <div className="overflow-x-auto">
-                          <table className="w-full text-sm text-left">
-                              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
-                                  <tr>
-                                      <th className="px-6 py-3">Date</th>
-                                      <th className="px-6 py-3">Score</th>
-                                      <th className="px-6 py-3">Goal</th>
-                                      <th className="px-6 py-3">Actions</th>
-                                  </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                  {history.length === 0 ? (
-                                      <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400">No logs found yet.</td></tr>
-                                  ) : (
-                                      history.map((log) => (
-                                          <tr key={log.date} className="hover:bg-slate-50">
-                                              <td className="px-6 py-4 font-bold text-slate-800">
-                                                  {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                              </td>
-                                              <td className="px-6 py-4">
-                                                  <span className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full">{log.points || 0}</span>
-                                              </td>
-                                              <td className="px-6 py-4 font-medium text-slate-500">
-                                                  {log.dailyGoal || DEFAULT_GOAL}
-                                              </td>
-                                              <td className="px-6 py-4">
-                                                  <button onClick={() => setViewingHistoryLog(log)} className="text-indigo-600 font-bold hover:underline flex items-center gap-1"><List className="w-4 h-4"/> Details</button>
-                                              </td>
-                                          </tr>
-                                      ))
-                                  )}
-                              </tbody>
-                          </table>
-                      </div>
+                    <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+                      <History className="w-5 h-5 text-indigo-600" />
+                      <h2 className="text-lg font-black text-slate-700">Daily Log History</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                <tr>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Score</th>
+                                    <th className="px-6 py-3">Goal</th>
+                                    <th className="px-6 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {history.length === 0 ? (
+                                    <tr><td colSpan="4" className="px-6 py-8 text-center text-slate-400">No logs found yet.</td></tr>
+                                ) : (
+                                    history.map((log) => (
+                                        <tr key={log.date} className="hover:bg-slate-50">
+                                            <td className="px-6 py-4 font-bold text-slate-800">
+                                                {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full">{log.points || 0}</span>
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-slate-500">
+                                                {log.dailyGoal || DEFAULT_GOAL}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button onClick={() => setViewingHistoryLog(log)} className="text-indigo-600 font-bold hover:underline flex items-center gap-1"><List className="w-4 h-4"/> Details</button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                   </div>
 
                   <div className="border-t pt-8 mt-8">
@@ -1135,21 +1132,21 @@
               <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-2 shadow-sm">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
                         <Gamepad2 className="w-6 h-6" />
-                     </div>
-                     <div>
+                      </div>
+                      <div>
                         <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Gabriel's Space</h1>
                         <p className="text-xs font-bold text-slate-400">Let's learn!</p>
-                     </div>
+                      </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                     <button onClick={() => setViewMode('pin_entry')} className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 hover:scale-105 transition-transform">
+                      <button onClick={() => setViewMode('pin_entry')} className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 hover:scale-105 transition-transform">
                         <Settings className="w-5 h-5 text-slate-400" />
-                     </button>
-                     
-                     <div className="flex items-center gap-2 bg-white pl-3 pr-1 py-1 rounded-xl shadow-sm border border-slate-100">
+                      </button>
+                      
+                      <div className="flex items-center gap-2 bg-white pl-3 pr-1 py-1 rounded-xl shadow-sm border border-slate-100">
                         <div className="text-right">
                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
                            <div className="text-sm font-black text-slate-800 leading-none">{data.points || 0} / {data.dailyGoal || DEFAULT_GOAL}</div>
@@ -1161,14 +1158,14 @@
                            </svg>
                            <Trophy className="w-3 h-3 text-yellow-500 absolute" />
                         </div>
-                     </div>
+                      </div>
                   </div>
                 </div>
               </div>
 
               <main className="max-w-6xl mx-auto p-4">
                 {!selectedSubject && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {SUBJECTS.map((sub, index) => {
                             if (!isSubjectVisible(sub.id)) return null;
                             
@@ -1181,24 +1178,24 @@
                                 <button 
                                    key={sub.id} 
                                    onClick={() => setSelectedSubject(sub)}
-                                   className={`group relative bg-white rounded-2xl p-4 text-left border-b-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${sub.borderColor} ${isComplete ? 'opacity-70' : ''} min-h-[140px] flex flex-col justify-between`}
+                                   className={`group relative bg-white rounded-2xl p-3 text-left border-b-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${sub.borderColor} ${isComplete ? 'opacity-70' : ''} min-h-[100px] flex flex-col justify-between`}
                                    style={{ animationDelay: `${index * 50}ms` }}
                                 >
-                                   <div className="flex justify-between items-start mb-2">
-                                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${sub.color} text-slate-800 shadow-sm group-hover:shadow-md transition-shadow`}>
-                                          {React.cloneElement(sub.icon, { className: "w-6 h-6" })}
-                                       </div>
-                                       <div className={`text-[10px] font-black px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                          {isComplete ? 'DONE' : `${progress}%`}
-                                       </div>
+                                   <div className="flex justify-between items-start mb-1">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${sub.color} text-slate-800 shadow-sm group-hover:shadow-md transition-shadow`}>
+                                           {React.cloneElement(sub.icon, { className: "w-5 h-5" })}
+                                        </div>
+                                        <div className={`text-[10px] font-black px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                           {isComplete ? 'DONE' : `${progress}%`}
+                                        </div>
                                    </div>
                                    
                                    <div>
-                                       <h2 className="text-lg font-black text-slate-800 leading-tight mb-1">{sub.label}</h2>
-                                       <p className="text-slate-400 font-bold text-xs">{visibleTaskCount} Activities</p>
+                                        <h2 className="text-base font-black text-slate-800 leading-tight mb-0.5">{sub.label}</h2>
+                                        <p className="text-slate-400 font-bold text-[10px]">{visibleTaskCount} Activities</p>
                                    </div>
                                    
-                                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
+                                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
                                       <div className={`h-full bg-gradient-to-r ${sub.color}`} style={{ width: `${progress}%` }} />
                                    </div>
                                 </button>
@@ -1213,27 +1210,27 @@
                             <ArrowLeft className="w-4 h-4" /> Back
                         </button>
                         
-                        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-slate-100">
-                            <div className={`p-6 bg-gradient-to-r ${selectedSubject.color}`}>
+                        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-slate-100 max-w-3xl mx-auto">
+                            <div className={`p-4 bg-gradient-to-r ${selectedSubject.color}`}>
                                 <div className="flex items-center gap-3 text-slate-900">
                                     <div className="p-2 bg-white/50 backdrop-blur-sm rounded-xl shadow-sm">
-                                        {React.cloneElement(selectedSubject.icon, { className: "w-8 h-8" })}
+                                        {React.cloneElement(selectedSubject.icon, { className: "w-6 h-6" })}
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black">{selectedSubject.label}</h2>
-                                        <p className="font-bold opacity-75 text-sm">Let's finish these tasks!</p>
+                                        <h2 className="text-xl font-black">{selectedSubject.label}</h2>
+                                        <p className="font-bold opacity-75 text-xs">Let's finish these tasks!</p>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div className="p-4 grid gap-3">
+                            <div className="p-3 grid gap-2">
                                 {selectedSubject.tasks.map((task, i) => {
                                     if (!isTaskVisible(selectedSubject.id, task)) return null;
 
                                     const key = getTaskKey(selectedSubject.id, task);
                                     const isDone = data[key];
                                     const timestamp = data[`${key}_time`]; 
-                                    const points = calculatePoints(task); // <--- USING NEW CALCULATOR HERE
+                                    const points = calculatePoints(task); 
 
                                     let bgClass = 'bg-white border-slate-200';
                                     if (!isTaskVisible(selectedSubject.id, task)) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
@@ -1263,13 +1260,17 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <button 
-                                                    onClick={() => toggleTaskVisibility(selectedSubject.id, task)} 
-                                                    className="p-1 text-slate-400 hover:text-blue-600 rounded"
-                                                    title={isTaskVisible(selectedSubject.id, task) ? "Hide Task" : "Show Task"}
-                                                >
-                                                    {isTaskVisible(selectedSubject.id, task) ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
-                                                </button>
+                                                
+                                                {/* HIDE/SHOW BUTTON - ONLY FOR PARENT */}
+                                                {viewMode === 'parent' && (
+                                                    <button 
+                                                        onClick={() => toggleTaskVisibility(selectedSubject.id, task)} 
+                                                        className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                                                        title={isTaskVisible(selectedSubject.id, task) ? "Hide Task" : "Show Task"}
+                                                    >
+                                                        {isTaskVisible(selectedSubject.id, task) ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
+                                                    </button>
+                                                )}
                                             </div>
                                             
                                             <div className="flex items-center justify-end gap-2 border-t border-slate-100/50 pt-2 mt-auto">
@@ -1294,7 +1295,7 @@
                                                         onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
                                                         className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                                                     >
-                                                        Open <ChevronRight className="w-3 h-3"/>
+                                                        Open <ChevronRight className="w-5 h-5"/>
                                                     </button>
                                                 )}
                                             </div>
@@ -1364,7 +1365,7 @@
                               <div className="bg-red-50 rounded-xl p-3 mb-4 border border-red-100">
                                    <p className="text-slate-800 font-bold text-sm">"{alertPopup.message}"</p>
                                    <p className="text-xs text-red-500 font-bold mt-1 uppercase tracking-wide">
-                                       Points Deducted: {alertPopup.amount}
+                                        Points Deducted: {alertPopup.amount}
                                    </p>
                               </div>
                               <button 
