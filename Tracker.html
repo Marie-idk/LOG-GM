@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gabriel's Space - Tracker</title>
+    <title>Gabriel's Space - Mission Control</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,22 +15,37 @@
     <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Google Fonts: Fredoka for playfulness, Open Sans for readability -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
     <style>
-        /* Reverted to standard clean sans-serif font */
-        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .bg-pastel-gradient {
-            background: linear-gradient(135deg, #fff1f2 0%, #eff6ff 50%, #f0fdf4 100%);
+        body { 
+            font-family: 'Fredoka', sans-serif; 
+            background-color: #fdf2f8; /* Very light pink base */
         }
-        .btn-press:active { transform: translateY(2px); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .bg-pastel-gradient {
+            background: linear-gradient(180deg, #fff1f2 0%, #eff6ff 100%);
+        }
+        .btn-press { transition: transform 0.1s; }
+        .btn-press:active { transform: scale(0.95); }
+        
         .animate-fall { animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(105vh) rotate(720deg); } }
         
-        /* Scrollbar hiding for cleaner UI */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Neurodivergent friendly: Clear distinct borders */
+        .card-border { border: 3px solid; }
     </style>
 </head>
-<body class="bg-pastel-gradient min-h-screen text-slate-800 selection:bg-pink-200">
+<body class="bg-pastel-gradient min-h-screen text-slate-700 selection:bg-pink-200">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -53,6 +68,7 @@
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const { useState, useEffect, createElement } = React;
+        const { jsPDF } = window.jspdf;
 
         // --- ICONS (Lucide Style) ---
         const IconBase = ({ d, className, ...props }) => (
@@ -61,6 +77,7 @@
             </svg>
         );
 
+        // Icons
         const BookOpen = (p) => <IconBase {...p} d={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} />;
         const Calculator = (p) => <IconBase {...p} d={<><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></>} />;
         const FlaskConical = (p) => <IconBase {...p} d={<><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></>} />;
@@ -97,6 +114,7 @@
         const Check = (p) => <IconBase {...p} d={<><path d="M20 6 9 17l-5-5"/></>} />;
         const ChevronDown = (p) => <IconBase {...p} d={<><path d="m6 9 6 6 6-6"/></>} />;
         const ChevronRight = (p) => <IconBase {...p} d={<><path d="m9 18 6-6-6-6"/></>} />;
+        const FileDown = (p) => <IconBase {...p} d={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></>} />;
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
@@ -119,13 +137,14 @@
         const STUDENT_NAME = "Gabriel Mendoza";
         const DEFAULT_GOAL = 50;
 
+        // FIXED: Corrected array string syntax
         const SUBJECTS = [
           { 
             id: 'english', 
             label: 'English', 
             icon: <BookOpen className="w-8 h-8 text-pink-600" />, 
             color: 'from-pink-300 to-rose-200', 
-            borderColor: 'border-pink-200',
+            borderColor: 'border-pink-300',
             btnColor: 'bg-pink-100 text-pink-700',
             tasks: ['Check In', 'Recap', 'Reading', 'Lesson', 'Vocabulary', 'Assignment', 'Mark as done', 'Upload']
           },
@@ -134,7 +153,7 @@
             label: 'Math', 
             icon: <Calculator className="w-8 h-8 text-blue-600" />, 
             color: 'from-blue-300 to-cyan-200', 
-            borderColor: 'border-blue-200',
+            borderColor: 'border-blue-300',
             btnColor: 'bg-blue-100 text-blue-700',
             tasks: ['Check In', 'Watch Lesson', 'Assignment', 'Math Game', 'Mark as done', 'Upload']
           },
@@ -143,45 +162,45 @@
             label: 'Science', 
             icon: <FlaskConical className="w-8 h-8 text-green-600" />, 
             color: 'from-emerald-300 to-green-200', 
-            borderColor: 'border-green-200',
+            borderColor: 'border-green-300',
             btnColor: 'bg-green-100 text-green-700',
-            tasks: ['Check In', 'Experiment Video', 'Lab Report', 'Quiz,' 'Mark as done', 'Upload']
+            tasks: ['Check In', 'Experiment Video', 'Lab Report', 'Quiz', 'Mark as done', 'Upload']
           },
           { 
             id: 'social', 
             label: 'Social Studies', 
             icon: <Globe2 className="w-8 h-8 text-purple-600" />, 
             color: 'from-purple-300 to-violet-200', 
-            borderColor: 'border-purple-200',
+            borderColor: 'border-purple-300',
             btnColor: 'bg-purple-100 text-purple-700',
-            tasks: ['Check In', 'Map Activity', 'Reading', 'Questions,' 'Mark as done', 'Upload']
+            tasks: ['Check In', 'Map Activity', 'Reading', 'Questions', 'Mark as done', 'Upload']
           },
           { 
             id: 'art', 
             label: 'Art', 
             icon: <Palette className="w-8 h-8 text-orange-600" />, 
             color: 'from-orange-300 to-amber-200', 
-            borderColor: 'border-orange-200',
+            borderColor: 'border-orange-300',
             btnColor: 'bg-orange-100 text-orange-700',
-            tasks: ['Check In', 'Creative Project', 'Mark as done', 'Upload' ]
+            tasks: ['Check In', 'Creative Project']
           },
           { 
             id: 'music', 
             label: 'Music', 
             icon: <Music className="w-8 h-8 text-teal-600" />, 
             color: 'from-teal-300 to-cyan-200', 
-            borderColor: 'border-teal-200',
+            borderColor: 'border-teal-300',
             btnColor: 'bg-teal-100 text-teal-700',
-            tasks: ['Check In', 'Listening Activity', 'Mark as done', 'Upload']
+            tasks: ['Check In', 'Listening Activity']
           },
           { 
             id: 'pe', 
             label: 'PE / Health', 
             icon: <Activity className="w-8 h-8 text-red-600" />, 
             color: 'from-red-300 to-orange-200', 
-            borderColor: 'border-red-200',
+            borderColor: 'border-red-300',
             btnColor: 'bg-red-100 text-red-700',
-            tasks: ['Check In', 'Movement Break', 'Mark as done', 'Upload']
+            tasks: ['Check In', 'Movement Break']
           }
         ];
 
@@ -383,6 +402,70 @@
           const triggerConfetti = () => {
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 2500);
+          };
+
+          const handleDownloadPDF = () => {
+             try {
+                const doc = new jsPDF();
+                
+                // --- PDF Header ---
+                doc.setFont("Helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text(STUDENT_NAME, 20, 20); // Student Name
+                
+                doc.setFontSize(12);
+                doc.setFont("Helvetica", "normal");
+                doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 30); // Current Date
+                
+                doc.setLineWidth(0.5);
+                doc.line(20, 35, 190, 35);
+                
+                // --- Content ---
+                doc.setFontSize(14);
+                doc.setFont("Helvetica", "bold");
+                doc.text("Daily Progress Report", 20, 45);
+                
+                let yPos = 55;
+                
+                // Summary Stats
+                doc.setFontSize(12);
+                doc.setFont("Helvetica", "normal");
+                doc.text(`Total Points Earned: ${data.points || 0}`, 20, yPos);
+                yPos += 10;
+                doc.text(`Daily Goal: ${data.dailyGoal || DEFAULT_GOAL}`, 20, yPos);
+                yPos += 15;
+                
+                // Completed Tasks
+                doc.setFont("Helvetica", "bold");
+                doc.text("Completed Activities:", 20, yPos);
+                yPos += 10;
+                
+                doc.setFont("Helvetica", "normal");
+                
+                // Filter logs for today
+                const logs = data.activityLog || [];
+                const completedLogs = logs.filter(l => l.type === 'completion').reverse();
+                
+                if (completedLogs.length === 0) {
+                    doc.text("No activities completed yet today.", 25, yPos);
+                } else {
+                    completedLogs.forEach((log) => {
+                        if (yPos > 270) { // New page if near bottom
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        const subName = SUBJECTS.find(s => s.id === log.subject)?.label || "Activity";
+                        doc.text(`• ${log.time} - ${subName}: ${log.task} (+${log.points})`, 25, yPos);
+                        yPos += 8;
+                    });
+                }
+                
+                doc.save(`${STUDENT_NAME.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+                triggerConfetti(); // Reward for downloading!
+             } catch (e) {
+                 console.error("PDF Error", e);
+                 alert("Could not generate PDF.");
+             }
           };
 
           const updateDailyGoal = async () => {
@@ -607,9 +690,8 @@
                   );
               }
 
-              // --- CUSTOM DIRECTIONS START HERE ---
-
-              // 1. Math Specific Lesson (Must come before generic lesson rule)
+              // --- CUSTOM DIRECTIONS ---
+              // 1. Math Specific Lesson
               if (t.includes("lesson") && focusTask.subId === 'math') {
                   return (
                       <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
@@ -718,7 +800,7 @@
                       </div>
                   );
               }
-             // 11. Math Specific Assignment (Must come before generic lesson rule)
+             // 11. Math Specific Assignment 
               if (t.includes("assignment") && focusTask.subId === 'math') {
                   return (
                       <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
@@ -1125,259 +1207,241 @@
             );
           }
 
+          // --- STUDENT VIEW (COMPACT) ---
           return (
-            <div className="min-h-screen bg-pastel-gradient text-slate-800 pb-12 selection:bg-pink-200">
+            <div className="min-h-screen bg-pastel-gradient text-slate-700 pb-12 selection:bg-pink-200 flex flex-col items-center">
               <Confetti active={showConfetti} />
               
-              <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-2 shadow-sm">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                        <Gamepad2 className="w-6 h-6" />
+              <div className="w-full max-w-3xl flex flex-col min-h-screen">
+                  <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-3 shadow-sm rounded-b-3xl mb-4 mx-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                            <Gamepad2 className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Gabriel's Space</h1>
+                            <p className="text-xs font-bold text-slate-400">Let's learn!</p>
+                          </div>
                       </div>
-                      <div>
-                        <h1 className="text-lg font-black text-slate-800 tracking-tight leading-none">Gabriel's Space</h1>
-                        <p className="text-xs font-bold text-slate-400">Let's learn!</p>
-                      </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                      <button onClick={() => setViewMode('pin_entry')} className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 hover:scale-105 transition-transform">
-                        <Settings className="w-5 h-5 text-slate-400" />
-                      </button>
                       
-                      <div className="flex items-center gap-2 bg-white pl-3 pr-1 py-1 rounded-xl shadow-sm border border-slate-100">
-                        <div className="text-right">
-                           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
-                           <div className="text-sm font-black text-slate-800 leading-none">{data.points || 0} / {data.dailyGoal || DEFAULT_GOAL}</div>
-                        </div>
-                        <div className="w-8 h-8 relative flex items-center justify-center">
-                           <svg className="w-full h-full transform -rotate-90">
-                              <circle cx="16" cy="16" r="13" stroke="#f1f5f9" strokeWidth="3" fill="none" />
-                              <circle cx="16" cy="16" r="13" stroke="#8b5cf6" strokeWidth="3" fill="none" strokeDasharray="81" strokeDashoffset={81 - (81 * Math.min(1, (data.points || 0) / (data.dailyGoal || DEFAULT_GOAL)))} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
-                           </svg>
-                           <Trophy className="w-3 h-3 text-yellow-500 absolute" />
-                        </div>
+                      <div className="flex items-center gap-2">
+                           <button onClick={handleDownloadPDF} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shadow-sm border border-indigo-100 hover:scale-105 transition-transform" title="Download Report">
+                             <FileDown className="w-5 h-5" />
+                           </button>
+
+                          <button onClick={() => setViewMode('pin_entry')} className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 hover:scale-105 transition-transform">
+                            <Settings className="w-5 h-5 text-slate-400" />
+                          </button>
+                          
+                          <div className="flex items-center gap-2 bg-white pl-3 pr-1 py-1 rounded-xl shadow-sm border border-slate-100">
+                            <div className="text-right">
+                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
+                               <div className="text-sm font-black text-slate-800 leading-none">{data.points || 0} / {data.dailyGoal || DEFAULT_GOAL}</div>
+                            </div>
+                            <div className="w-8 h-8 relative flex items-center justify-center">
+                               <svg className="w-full h-full transform -rotate-90">
+                                  <circle cx="16" cy="16" r="13" stroke="#f1f5f9" strokeWidth="3" fill="none" />
+                                  <circle cx="16" cy="16" r="13" stroke="#8b5cf6" strokeWidth="3" fill="none" strokeDasharray="81" strokeDashoffset={81 - (81 * Math.min(1, (data.points || 0) / (data.dailyGoal || DEFAULT_GOAL)))} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                               </svg>
+                               <Trophy className="w-3 h-3 text-yellow-500 absolute" />
+                            </div>
+                          </div>
                       </div>
-                  </div>
-                </div>
-              </div>
-
-              <main className="max-w-6xl mx-auto p-4">
-                {!selectedSubject && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {SUBJECTS.map((sub, index) => {
-                            if (!isSubjectVisible(sub.id)) return null;
-                            
-                            const progress = calculateSubjectProgress(sub);
-                            const isComplete = progress === 100;
-                            
-                            const visibleTaskCount = sub.tasks.filter(t => isTaskVisible(sub.id, t)).length;
-                            
-                            return (
-                                <button 
-                                   key={sub.id} 
-                                   onClick={() => setSelectedSubject(sub)}
-                                   className={`group relative bg-white rounded-2xl p-3 text-left border-b-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${sub.borderColor} ${isComplete ? 'opacity-70' : ''} min-h-[100px] flex flex-col justify-between`}
-                                   style={{ animationDelay: `${index * 50}ms` }}
-                                >
-                                   <div className="flex justify-between items-start mb-1">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${sub.color} text-slate-800 shadow-sm group-hover:shadow-md transition-shadow`}>
-                                           {React.cloneElement(sub.icon, { className: "w-5 h-5" })}
-                                        </div>
-                                        <div className={`text-[10px] font-black px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                           {isComplete ? 'DONE' : `${progress}%`}
-                                        </div>
-                                   </div>
-                                   
-                                   <div>
-                                        <h2 className="text-base font-black text-slate-800 leading-tight mb-0.5">{sub.label}</h2>
-                                        <p className="text-slate-400 font-bold text-[10px]">{visibleTaskCount} Activities</p>
-                                   </div>
-                                   
-                                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                                      <div className={`h-full bg-gradient-to-r ${sub.color}`} style={{ width: `${progress}%` }} />
-                                   </div>
-                                </button>
-                            )
-                        })}
                     </div>
-                )}
+                  </div>
 
-                {selectedSubject && (
-                    <div className="animate-in fade-in zoom-in-95 duration-300">
-                        <button onClick={() => setSelectedSubject(null)} className="mb-4 flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm text-sm">
-                            <ArrowLeft className="w-4 h-4" /> Back
-                        </button>
-                        
-                        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-slate-100 max-w-3xl mx-auto">
-                            <div className={`p-4 bg-gradient-to-r ${selectedSubject.color}`}>
-                                <div className="flex items-center gap-3 text-slate-900">
-                                    <div className="p-2 bg-white/50 backdrop-blur-sm rounded-xl shadow-sm">
-                                        {React.cloneElement(selectedSubject.icon, { className: "w-6 h-6" })}
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-black">{selectedSubject.label}</h2>
-                                        <p className="font-bold opacity-75 text-xs">Let's finish these tasks!</p>
+                  <main className="flex-1 p-4">
+                    {!selectedSubject && (
+                        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {SUBJECTS.map((sub, index) => {
+                                if (!isSubjectVisible(sub.id)) return null;
+                                
+                                const progress = calculateSubjectProgress(sub);
+                                const isComplete = progress === 100;
+                                const visibleTaskCount = sub.tasks.filter(t => isTaskVisible(sub.id, t)).length;
+                                
+                                return (
+                                    <button 
+                                       key={sub.id} 
+                                       onClick={() => setSelectedSubject(sub)}
+                                       className={`group relative bg-white rounded-3xl p-4 text-left border-b-4 transition-all hover:scale-[1.02] active:scale-[0.98] ${sub.borderColor} ${isComplete ? 'opacity-70' : ''} min-h-[140px] flex flex-col justify-between shadow-sm card-border border-transparent hover:border-slate-100`}
+                                       style={{ animationDelay: `${index * 50}ms` }}
+                                    >
+                                       <div className="flex justify-between items-start mb-1">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${sub.color} text-slate-800 shadow-sm group-hover:shadow-md transition-shadow`}>
+                                               {React.cloneElement(sub.icon, { className: "w-6 h-6" })}
+                                            </div>
+                                            <div className={`text-[10px] font-black px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                               {isComplete ? 'DONE' : `${progress}%`}
+                                            </div>
+                                       </div>
+                                       
+                                       <div>
+                                            <h2 className="text-lg font-black text-slate-800 leading-tight mb-0.5">{sub.label}</h2>
+                                            <p className="text-slate-400 font-bold text-xs">{visibleTaskCount} Activities</p>
+                                       </div>
+                                       
+                                       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
+                                          <div className={`h-full bg-gradient-to-r ${sub.color}`} style={{ width: `${progress}%` }} />
+                                       </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+
+                    {selectedSubject && (
+                        <div className="animate-in fade-in zoom-in-95 duration-300">
+                            <button onClick={() => setSelectedSubject(null)} className="mb-4 flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors bg-white px-4 py-2 rounded-full shadow-sm text-sm">
+                                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                            </button>
+                            
+                            <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border-2 border-slate-100 mx-auto">
+                                <div className={`p-6 bg-gradient-to-r ${selectedSubject.color}`}>
+                                    <div className="flex items-center gap-4 text-slate-900">
+                                        <div className="p-3 bg-white/50 backdrop-blur-sm rounded-2xl shadow-sm">
+                                            {React.cloneElement(selectedSubject.icon, { className: "w-8 h-8" })}
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black">{selectedSubject.label}</h2>
+                                            <p className="font-bold opacity-75 text-sm">Let's finish these tasks!</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div className="p-3 grid gap-2">
-                                {selectedSubject.tasks.map((task, i) => {
-                                    if (!isTaskVisible(selectedSubject.id, task)) return null;
+                                
+                                <div className="p-4 grid gap-3">
+                                    {selectedSubject.tasks.map((task, i) => {
+                                        if (!isTaskVisible(selectedSubject.id, task)) return null;
 
-                                    const key = getTaskKey(selectedSubject.id, task);
-                                    const isDone = data[key];
-                                    const timestamp = data[`${key}_time`]; 
-                                    const points = calculatePoints(task); 
+                                        const key = getTaskKey(selectedSubject.id, task);
+                                        const isDone = data[key];
+                                        const timestamp = data[`${key}_time`]; 
+                                        const points = calculatePoints(task); 
 
-                                    let bgClass = 'bg-white border-slate-200';
-                                    if (!isTaskVisible(selectedSubject.id, task)) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
-                                    else if (isDone) bgClass = 'bg-green-50 border-green-300 shadow-sm';
-                                    else bgClass = 'bg-white border-slate-200 opacity-70';
+                                        let bgClass = 'bg-white border-slate-200';
+                                        if (isDone) bgClass = 'bg-green-50 border-green-300 shadow-sm';
+                                        else if (data[`${key}_flagged`]) bgClass = 'bg-yellow-50 border-yellow-300 shadow-sm';
+                                        else bgClass = 'bg-white border-slate-200 opacity-70 hover:opacity-100';
 
-                                    // Check if flagged
-                                    const isFlagged = data[`${key}_flagged`];
-                                    if (isFlagged) bgClass = 'bg-yellow-50 border-yellow-300 shadow-sm';
+                                        const isFlagged = data[`${key}_flagged`];
 
-                                    return (
-                                        <div key={key} className={`p-3 rounded-xl border flex flex-col justify-between gap-3 select-none transition-all ${bgClass}`}>
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-2">
-                                                    <div className={`mt-1 w-6 h-6 rounded flex items-center justify-center border transition-colors ${isDone ? 'bg-green-500 border-green-500' : isFlagged ? 'bg-yellow-400 border-yellow-400' : 'bg-white border-slate-300'}`}>
-                                                        {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
-                                                        {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
-                                                    </div>
-                                                    <div>
-                                                        <span className={`text-base font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
-                                                            {task} {!isTaskVisible(selectedSubject.id, task) && "(Hidden)"}
-                                                        </span>
-                                                        <div className="flex flex-wrap gap-2 text-[10px] font-bold mt-1">
-                                                            <span className="uppercase text-slate-400">{points} PTS</span>
-                                                            {isDone && timestamp && <span className="text-blue-500">@{timestamp}</span>}
-                                                            {isFlagged && <span className="text-yellow-600 uppercase">NEEDS HELP</span>}
+                                        return (
+                                            <div key={key} className={`p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 select-none transition-all ${bgClass}`}>
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className={`mt-1 w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-colors ${isDone ? 'bg-green-500 border-green-500' : isFlagged ? 'bg-yellow-400 border-yellow-400' : 'bg-white border-slate-300'}`}>
+                                                            {isDone && <CheckCircle2 className="w-5 h-5 text-white" />}
+                                                            {isFlagged && <HelpCircle className="w-5 h-5 text-white" />}
+                                                        </div>
+                                                        <div>
+                                                            <span className={`text-lg font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
+                                                                {task}
+                                                            </span>
+                                                            <div className="flex flex-wrap gap-2 text-xs font-bold mt-1">
+                                                                <span className="uppercase text-slate-400">{points} PTS</span>
+                                                                {isDone && timestamp && <span className="text-blue-500">@{timestamp}</span>}
+                                                                {isFlagged && <span className="text-yellow-600 uppercase">NEEDS HELP</span>}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
-                                                {/* HIDE/SHOW BUTTON - ONLY FOR PARENT */}
-                                                {viewMode === 'parent' && (
-                                                    <button 
-                                                        onClick={() => toggleTaskVisibility(selectedSubject.id, task)} 
-                                                        className="p-1 text-slate-400 hover:text-blue-600 rounded"
-                                                        title={isTaskVisible(selectedSubject.id, task) ? "Hide Task" : "Show Task"}
-                                                    >
-                                                        {isTaskVisible(selectedSubject.id, task) ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center justify-end gap-2 border-t border-slate-100/50 pt-2 mt-auto">
+                                                    {!isDone && !isFlagged && (
+                                                        <button 
+                                                            onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
+                                                            className="text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-600 py-2 px-4 rounded-xl flex items-center gap-1 shadow-sm shadow-indigo-200 btn-press"
+                                                        >
+                                                            Start <ChevronRight className="w-5 h-5"/>
+                                                        </button>
+                                                    )}
+                                                    {/* Parent Undo controls normally hidden in student view unless strictly needed, 
+                                                        but leaving accessible here for logic consistency or if student clicks by mistake */}
+                                                    {isDone && (
+                                                         <button onClick={() => undoTask(selectedSubject.id, task, points)} className="text-xs font-bold text-green-600 underline px-2">Undo</button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            
-                                            <div className="flex items-center justify-end gap-2 border-t border-slate-100/50 pt-2 mt-auto">
-                                                {isDone ? (
-                                                    <>
-                                                        <button onClick={() => setRejectModal({ subId: selectedSubject.id, taskName: task, points })} className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">
-                                                            <ThumbsDown className="w-3 h-3" /> Reject
-                                                        </button>
-                                                        <button onClick={() => undoTask(selectedSubject.id, task, points)} className="text-xs font-bold text-green-600 underline px-2">Undo</button>
-                                                    </>
-                                                ) : isFlagged ? (
-                                                    <div className="flex gap-1">
-                                                        <button onClick={() => resolveFlag(selectedSubject.id, task, points, 'approve')} className="bg-green-100 text-green-700 p-2 rounded-lg hover:bg-green-200" title="Mark Done (Award Points)">
-                                                            <Check className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => resolveFlag(selectedSubject.id, task, points, 'reset')} className="bg-slate-100 text-slate-600 p-2 rounded-lg hover:bg-slate-200" title="Reset (Try Again)">
-                                                            <RotateCcw className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button 
-                                                        onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
-                                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                                                    >
-                                                        Open <ChevronRight className="w-5 h-5"/>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-              </main>
+                    )}
+                  </main>
 
-              {focusTask && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-                      <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                          <div className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
-                              <div className="flex items-center gap-3">
-                                  {focusTask.icon}
-                                  <h2 className="text-2xl font-black text-slate-800">{focusTask.name}</h2>
+                  {focusTask && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                          <div className="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-4 border-white">
+                              <div className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+                                  <div className="flex items-center gap-3">
+                                      {focusTask.icon}
+                                      <h2 className="text-2xl font-black text-slate-800">{focusTask.name}</h2>
+                                  </div>
+                                  <button onClick={() => setFocusTask(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                                      <X className="w-6 h-6 text-slate-600" />
+                                  </button>
                               </div>
-                              <button onClick={() => setFocusTask(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
-                                  <X className="w-6 h-6 text-slate-600" />
-                              </button>
-                          </div>
-                          
-                          <div className="p-8 flex flex-col items-center gap-8">
-                              {renderFocusContent()}
                               
-                              <div className="grid grid-cols-2 gap-4 w-full">
-                                  <button 
-                                    onClick={() => flagTask(focusTask.subId, focusTask.name)}
-                                    className="py-4 rounded-2xl bg-yellow-100 text-yellow-700 font-black text-lg hover:bg-yellow-200 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
-                                  >
-                                    <HelpCircle className="w-8 h-8" />
-                                    <span>I Need Help</span>
-                                  </button>
+                              <div className="p-8 flex flex-col items-center gap-8">
+                                  {renderFocusContent()}
                                   
+                                  <div className="grid grid-cols-2 gap-4 w-full">
+                                      <button 
+                                        onClick={() => flagTask(focusTask.subId, focusTask.name)}
+                                        className="py-4 rounded-2xl bg-yellow-100 text-yellow-700 font-black text-lg hover:bg-yellow-200 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
+                                      >
+                                        <HelpCircle className="w-8 h-8" />
+                                        <span>I Need Help</span>
+                                      </button>
+                                      
+                                      <button 
+                                        onClick={() => completeTask(focusTask.subId, focusTask.name, focusTask.points)}
+                                        className="py-4 rounded-2xl bg-green-500 text-white font-black text-lg shadow-lg shadow-green-200 hover:bg-green-600 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
+                                      >
+                                        <CheckCircle2 className="w-8 h-8" />
+                                        <span>I'm Done!</span>
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  )}
+
+                  {alertPopup && (
+                      <div className="fixed bottom-6 right-6 z-[60] max-w-sm w-full animate-in slide-in-from-right duration-500">
+                          <div className="bg-white rounded-2xl shadow-2xl border-l-8 border-red-500 p-6 relative overflow-hidden">
+                              <div className="absolute top-0 right-0 p-4 opacity-10">
+                                  <AlertCircle className="w-32 h-32 text-red-500" />
+                              </div>
+                              <div className="relative z-10">
+                                  <div className="flex items-start gap-4 mb-3">
+                                      <div className="bg-red-100 p-3 rounded-full">
+                                          <Megaphone className="w-6 h-6 text-red-600" />
+                                      </div>
+                                      <div>
+                                          <h3 className="text-lg font-black text-red-600">Teacher Alert!</h3>
+                                          <p className="font-bold text-slate-700 text-sm">Action Required</p>
+                                      </div>
+                                  </div>
+                                  <div className="bg-red-50 rounded-xl p-3 mb-4 border border-red-100">
+                                       <p className="text-slate-800 font-bold text-sm">"{alertPopup.message}"</p>
+                                       <p className="text-xs text-red-500 font-bold mt-1 uppercase tracking-wide">
+                                            Points Deducted: {alertPopup.amount}
+                                       </p>
+                                  </div>
                                   <button 
-                                    onClick={() => completeTask(focusTask.subId, focusTask.name, focusTask.points)}
-                                    className="py-4 rounded-2xl bg-green-500 text-white font-black text-lg shadow-lg shadow-green-200 hover:bg-green-600 hover:scale-[1.02] transition-all flex flex-col items-center justify-center gap-1 btn-press"
+                                    onClick={() => setAlertPopup(null)}
+                                    className="w-full py-2 bg-slate-800 text-white font-bold rounded-lg text-sm hover:bg-slate-700"
                                   >
-                                    <CheckCircle2 className="w-8 h-8" />
-                                    <span>I'm Done!</span>
+                                    Okay, I Understand
                                   </button>
                               </div>
                           </div>
                       </div>
-                  </div>
-              )}
-
-              {alertPopup && (
-                  <div className="fixed bottom-6 right-6 z-[60] max-w-sm w-full animate-in slide-in-from-right duration-500">
-                      <div className="bg-white rounded-2xl shadow-2xl border-l-8 border-red-500 p-6 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-4 opacity-10">
-                              <AlertCircle className="w-32 h-32 text-red-500" />
-                          </div>
-                          <div className="relative z-10">
-                              <div className="flex items-start gap-4 mb-3">
-                                  <div className="bg-red-100 p-3 rounded-full">
-                                      <Megaphone className="w-6 h-6 text-red-600" />
-                                  </div>
-                                  <div>
-                                      <h3 className="text-lg font-black text-red-600">Teacher Alert!</h3>
-                                      <p className="font-bold text-slate-700 text-sm">Action Required</p>
-                                  </div>
-                              </div>
-                              <div className="bg-red-50 rounded-xl p-3 mb-4 border border-red-100">
-                                   <p className="text-slate-800 font-bold text-sm">"{alertPopup.message}"</p>
-                                   <p className="text-xs text-red-500 font-bold mt-1 uppercase tracking-wide">
-                                        Points Deducted: {alertPopup.amount}
-                                   </p>
-                              </div>
-                              <button 
-                                onClick={() => setAlertPopup(null)}
-                                className="w-full py-2 bg-slate-800 text-white font-bold rounded-lg text-sm hover:bg-slate-700"
-                              >
-                                Okay, I Understand
-                              </button>
-                          </div>
-                      </div>
-                  </div>
-              )}
+                  )}
+              </div>
             </div>
           );
         }
@@ -1387,8 +1451,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
