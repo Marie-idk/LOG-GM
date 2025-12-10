@@ -126,7 +126,7 @@
             color: 'from-pink-300 to-rose-200', 
             borderColor: 'border-pink-200',
             btnColor: 'bg-pink-100 text-pink-700',
-            tasks: ['Check In', 'Recap', 'Hatchet Ch.14', 'Review Vocabulary Words', 'Assignment']
+            tasks: ['Check In', 'Recap', 'Reading', 'Lesson', 'Vocabulary', 'Assignment', 'Mark as done', 'Upload ']
           },
           { 
             id: 'math', 
@@ -187,9 +187,13 @@
         const POINTS = {
           checkin: 2,
           video: 5,
+          reading: 10,
+          lesson: 10,
+          vocabulary: 10,
           assignment: 10,
-          complete: 10,
-          worksheet: 5
+          markasdone: 10,
+          upload: 10,
+          worksheet: 10,
         };
 
         const Confetti = ({ active }) => {
@@ -776,6 +780,11 @@
                                 if (task.includes("Video")) points = POINTS.video;
                                 if (task.includes("Assignment")) points = POINTS.assignment;
                                 if (task.includes("Worksheet")) points = POINTS.worksheet;
+                                if (task.includes("Reading")) points = POINTS.reading;
+                                if (task.includes("Lesson")) points = POINTS.lesson;
+                                if (task.includes("Vocabulary")) points = POINTS.vocabulary;
+                                if (task.includes("Markasdone")) points = POINTS.markasdone;
+                                if (task.includes("Upload")) points = Upload;
 
                                 let bgClass = 'bg-white border-slate-200';
                                 if (!isVis) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
@@ -1220,3 +1229,4 @@
     </script>
 </body>
 </html>
+
