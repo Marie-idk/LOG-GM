@@ -53,7 +53,7 @@
 
         const { useState, useEffect, createElement } = React;
 
-        // --- ICON COMPONENTS (Replaced imports with inline SVGs to work without bundler) ---
+        // --- ICON COMPONENTS ---
         const IconBase = ({ d, className, ...props }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
                 {d}
@@ -600,6 +600,77 @@
                       </div>
                   );
               }
+
+              // --- CUSTOM DIRECTIONS START HERE ---
+
+              // 1. Hatchet (Reading)
+              if (t.includes("hatchet")) {
+                  return (
+                      <div className="w-full bg-green-50 border-2 border-green-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-green-600" /></div>
+                           <h3 className="text-2xl font-black text-green-900">Reading Time</h3>
+                           <p className="text-green-700 font-medium text-xl">Open your book to Chapter 14.<br/>Read pages 130-145 quietly.</p>
+                      </div>
+                  );
+              }
+
+              // 2. Recap
+              if (t.includes("recap")) {
+                  return (
+                      <div className="w-full bg-purple-50 border-2 border-purple-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-purple-500" /></div>
+                           <h3 className="text-2xl font-black text-purple-900">Quick Review</h3>
+                           <p className="text-purple-700 font-medium text-xl">Read the summary of the last chapter.<br/>Write down one thing you remember.</p>
+                      </div>
+                  );
+              }
+
+              // 3. Vocabulary
+              if (t.includes("vocabulary")) {
+                  return (
+                      <div className="w-full bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><BookOpen className="w-16 h-16 text-yellow-600" /></div>
+                           <h3 className="text-2xl font-black text-yellow-900">Word Work</h3>
+                           <p className="text-yellow-700 font-medium text-xl">Review your 5 vocabulary words.<br/>Write a sentence for each one.</p>
+                      </div>
+                  );
+              }
+
+              // 4. Math Game
+              if (t.includes("math game")) {
+                  return (
+                      <div className="w-full bg-pink-50 border-2 border-pink-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><Gamepad2 className="w-16 h-16 text-pink-500" /></div>
+                           <h3 className="text-2xl font-black text-pink-900">Play Time!</h3>
+                           <p className="text-pink-700 font-medium text-xl">Play the math game for 10 minutes.<br/>Try to beat your high score!</p>
+                      </div>
+                  );
+              }
+
+              // 5. Upload
+              if (t.includes("upload")) {
+                  return (
+                      <div className="w-full bg-teal-50 border-2 border-teal-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><ClipboardCheck className="w-16 h-16 text-teal-600" /></div>
+                           <h3 className="text-2xl font-black text-teal-900">Camera Time</h3>
+                           <p className="text-teal-700 font-medium text-xl">Take a clear picture of your work.<br/>Upload it to Google Classroom.</p>
+                      </div>
+                  );
+              }
+
+              // 6. Mark as Done
+              if (t.includes("mark as done")) {
+                  return (
+                      <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
+                           <div className="flex justify-center mb-2"><CheckCircle2 className="w-16 h-16 text-blue-600" /></div>
+                           <h3 className="text-2xl font-black text-blue-900">Almost There!</h3>
+                           <p className="text-blue-700 font-medium text-xl">Did you finish everything?<br/>Click the button below to finish!</p>
+                      </div>
+                  );
+              }
+
+              // --- END CUSTOM DIRECTIONS ---
+
               return (
                   <div className="w-full bg-orange-50 border-2 border-orange-200 rounded-3xl p-8 text-center space-y-4">
                        <div className="flex justify-center mb-2"><ClipboardCheck className="w-16 h-16 text-orange-500" /></div>
@@ -1229,5 +1300,3 @@
     </script>
 </body>
 </html>
-
-
