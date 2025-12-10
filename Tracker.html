@@ -184,6 +184,9 @@
           }
         ];
 
+        // -----------------------------------------------------------
+        // 1. POINT VALUES (How much each type is worth)
+        // -----------------------------------------------------------
         const POINTS = {
           checkin: 2,
           video: 5,
@@ -194,6 +197,30 @@
           markasdone: 10,
           upload: 10,
           worksheet: 10,
+          game: 10,
+          recap: 5
+        };
+
+        // -----------------------------------------------------------
+        // 2. THE POINT CALCULATOR
+        // (This decides which point value to use based on the name)
+        // -----------------------------------------------------------
+        const calculatePoints = (taskName) => {
+            // Check for specific words in the task name
+            if (taskName.includes("Video")) return POINTS.video;
+            if (taskName.includes("Assignment")) return POINTS.assignment;
+            if (taskName.includes("Worksheet")) return POINTS.worksheet;
+            if (taskName.includes("Reading")) return POINTS.reading;
+            if (taskName.includes("Lesson")) return POINTS.lesson;
+            if (taskName.includes("Vocabulary")) return POINTS.vocabulary;
+            if (taskName.includes("Mark as done")) return POINTS.markasdone;
+            if (taskName.includes("Upload")) return POINTS.upload;
+            if (taskName.includes("Hatchet")) return POINTS.reading; 
+            if (taskName.includes("Recap")) return POINTS.recap; 
+            if (taskName.includes("Game")) return POINTS.game;
+            
+            // Default if nothing matches (Check In)
+            return POINTS.checkin;
         };
 
         const Confetti = ({ active }) => {
@@ -591,6 +618,43 @@
                       </div>
                   );
               }
+
+              // --- CUSTOM DIRECTIONS START HERE ---
+
+              // 1. Math Specific Lesson (Must come before generic lesson rule)
+              if (t.includes("lesson") && focusTask.subId === 'math') {
+                  return (
+                      <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
+                          <div className="flex justify-center mb-2"><Calculator className="w-16 h-16 text-blue-600" /></div>
+                          <h3 className="text-2xl font-black text-blue-900">Math Lesson Time</h3>
+                          <p className="text-blue-700 font-medium text-xl">Get your whiteboard and marker.<br/>Solve the example problems with the video.</p>
+                      </div>
+                  );
+              }
+
+              // 2. Science Specific Lesson
+              if (t.includes("experiment") || (t.includes("lesson") && focusTask.subId === 'science')) {
+                  return (
+                      <div className="w-full bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-8 text-center space-y-4">
+                          <div className="flex justify-center mb-2"><FlaskConical className="w-16 h-16 text-emerald-600" /></div>
+                          <h3 className="text-2xl font-black text-emerald-900">Science Experiment</h3>
+                          <p className="text-emerald-700 font-medium text-xl">Watch the experiment video closely.<br/>Write down what happens.</p>
+                      </div>
+                  );
+              }
+
+              // 3. Social Studies Specific Lesson
+              if (t.includes("map") || (t.includes("lesson") && focusTask.subId === 'social')) {
+                  return (
+                      <div className="w-full bg-purple-50 border-2 border-purple-200 rounded-3xl p-8 text-center space-y-4">
+                          <div className="flex justify-center mb-2"><Globe2 className="w-16 h-16 text-purple-600" /></div>
+                          <h3 className="text-2xl font-black text-purple-900">Social Studies</h3>
+                          <p className="text-purple-700 font-medium text-xl">Look at the map activity.<br/>Find all the locations listed.</p>
+                      </div>
+                  );
+              }
+
+              // 4. Generic Video/Lesson
               if (t.includes("video") || t.includes("lesson")) {
                   return (
                       <div className="w-full bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-8 text-center space-y-4">
@@ -601,9 +665,7 @@
                   );
               }
 
-              // --- CUSTOM DIRECTIONS START HERE ---
-
-              // 1. Hatchet (Reading)
+              // 5. Hatchet (Reading)
               if (t.includes("hatchet")) {
                   return (
                       <div className="w-full bg-green-50 border-2 border-green-200 rounded-3xl p-8 text-center space-y-4">
@@ -614,7 +676,7 @@
                   );
               }
 
-              // 2. Recap
+              // 6. Recap
               if (t.includes("recap")) {
                   return (
                       <div className="w-full bg-purple-50 border-2 border-purple-200 rounded-3xl p-8 text-center space-y-4">
@@ -625,7 +687,7 @@
                   );
               }
 
-              // 3. Vocabulary
+              // 7. Vocabulary
               if (t.includes("vocabulary")) {
                   return (
                       <div className="w-full bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-8 text-center space-y-4">
@@ -636,7 +698,7 @@
                   );
               }
 
-              // 4. Math Game
+              // 8. Math Game
               if (t.includes("math game")) {
                   return (
                       <div className="w-full bg-pink-50 border-2 border-pink-200 rounded-3xl p-8 text-center space-y-4">
@@ -647,7 +709,7 @@
                   );
               }
 
-              // 5. Upload
+              // 9. Upload
               if (t.includes("upload")) {
                   return (
                       <div className="w-full bg-teal-50 border-2 border-teal-200 rounded-3xl p-8 text-center space-y-4">
@@ -658,7 +720,7 @@
                   );
               }
 
-              // 6. Mark as Done
+              // 10. Mark as Done
               if (t.includes("mark as done")) {
                   return (
                       <div className="w-full bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 text-center space-y-4">
@@ -847,15 +909,7 @@
                                 const isFlagged = data[`${key}_flagged`];
                                 const isVis = isTaskVisible(sub.id, task);
                                 const timestamp = data[`${key}_time`]; 
-                                let points = POINTS.checkin;
-                                if (task.includes("Video")) points = POINTS.video;
-                                if (task.includes("Assignment")) points = POINTS.assignment;
-                                if (task.includes("Worksheet")) points = POINTS.worksheet;
-                                if (task.includes("Reading")) points = POINTS.reading;
-                                if (task.includes("Lesson")) points = POINTS.lesson;
-                                if (task.includes("Vocabulary")) points = POINTS.vocabulary;
-                                if (task.includes("Mark as done")) points = POINTS.markasdone;
-                                if (task.includes("Upload")) points = POINTS.upload;
+                                const points = calculatePoints(task); // <--- USING NEW CALCULATOR HERE
 
                                 let bgClass = 'bg-white border-slate-200';
                                 if (!isVis) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
@@ -1178,42 +1232,74 @@
 
                                     const key = getTaskKey(selectedSubject.id, task);
                                     const isDone = data[key];
-                                    let points = POINTS.checkin;
-                                    if (task.includes("Video")) points = POINTS.video;
-                                    if (task.includes("Assignment")) points = POINTS.assignment;
-                                    
-                                    if (isDone) {
-                                        return (
-                                            <div key={i} className="flex items-center justify-between p-3 bg-green-50 border-2 border-green-200 rounded-xl opacity-80">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center">
-                                                        <CheckCircle2 className="w-5 h-5 text-green-700" />
-                                                    </div>
-                                                    <span className="text-base font-bold text-green-900 line-through decoration-green-500/50">{task}</span>
-                                                </div>
-                                                <button onClick={() => undoTask(selectedSubject.id, task, points)} className="text-xs font-bold text-green-600 underline px-2">Undo</button>
-                                            </div>
-                                        );
-                                    }
+                                    const timestamp = data[`${key}_time`]; 
+                                    const points = calculatePoints(task); // <--- USING NEW CALCULATOR HERE
+
+                                    let bgClass = 'bg-white border-slate-200';
+                                    if (!isTaskVisible(selectedSubject.id, task)) bgClass = 'bg-slate-100 border-slate-200 opacity-50';
+                                    else if (isDone) bgClass = 'bg-green-50 border-green-300 shadow-sm';
+                                    else bgClass = 'bg-white border-slate-200 opacity-70';
+
+                                    // Check if flagged
+                                    const isFlagged = data[`${key}_flagged`];
+                                    if (isFlagged) bgClass = 'bg-yellow-50 border-yellow-300 shadow-sm';
 
                                     return (
-                                        <button 
-                                            key={i}
-                                            onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
-                                            className="flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-xl hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all group text-left"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                                                    <div className="w-3 h-3 rounded-full bg-slate-300 group-hover:bg-indigo-500 transition-colors" />
+                                        <div key={key} className={`p-3 rounded-xl border flex flex-col justify-between gap-3 select-none transition-all ${bgClass}`}>
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-start gap-2">
+                                                    <div className={`mt-1 w-6 h-6 rounded flex items-center justify-center border transition-colors ${isDone ? 'bg-green-500 border-green-500' : isFlagged ? 'bg-yellow-400 border-yellow-400' : 'bg-white border-slate-300'}`}>
+                                                        {isDone && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                                        {isFlagged && <HelpCircle className="w-4 h-4 text-white" />}
+                                                    </div>
+                                                    <div>
+                                                        <span className={`text-sm font-bold block leading-tight ${isDone ? 'text-green-800' : isFlagged ? 'text-yellow-800' : 'text-slate-600'}`}>
+                                                            {task} {!isTaskVisible(selectedSubject.id, task) && "(Hidden)"}
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-2 text-[10px] font-bold mt-1">
+                                                            <span className="uppercase text-slate-400">{points} PTS</span>
+                                                            {isDone && timestamp && <span className="text-blue-500">@{timestamp}</span>}
+                                                            {isFlagged && <span className="text-yellow-600 uppercase">NEEDS HELP</span>}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="text-base font-bold text-slate-800 group-hover:text-indigo-900 transition-colors">{task}</span>
-                                                    <div className="text-xs font-bold text-slate-400 group-hover:text-indigo-400">Earn {points} Points</div>
-                                                </div>
+                                                <button 
+                                                    onClick={() => toggleTaskVisibility(selectedSubject.id, task)} 
+                                                    className="p-1 text-slate-400 hover:text-blue-600 rounded"
+                                                    title={isTaskVisible(selectedSubject.id, task) ? "Hide Task" : "Show Task"}
+                                                >
+                                                    {isTaskVisible(selectedSubject.id, task) ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
+                                                </button>
                                             </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-400" />
-                                        </button>
-                                    );
+                                            
+                                            <div className="flex items-center justify-end gap-2 border-t border-slate-100/50 pt-2 mt-auto">
+                                                {isDone ? (
+                                                    <>
+                                                        <button onClick={() => setRejectModal({ subId: selectedSubject.id, taskName: task, points })} className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">
+                                                            <ThumbsDown className="w-3 h-3" /> Reject
+                                                        </button>
+                                                        <button onClick={() => undoTask(selectedSubject.id, task, points)} className="text-xs font-bold text-green-600 underline px-2">Undo</button>
+                                                    </>
+                                                ) : isFlagged ? (
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => resolveFlag(selectedSubject.id, task, points, 'approve')} className="bg-green-100 text-green-700 p-2 rounded-lg hover:bg-green-200" title="Mark Done (Award Points)">
+                                                            <Check className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => resolveFlag(selectedSubject.id, task, points, 'reset')} className="bg-slate-100 text-slate-600 p-2 rounded-lg hover:bg-slate-200" title="Reset (Try Again)">
+                                                            <RotateCcw className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => startFocusTask(task, points, selectedSubject.icon, selectedSubject.id)}
+                                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                                                    >
+                                                        Open <ChevronRight className="w-3 h-3"/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
                                 })}
                             </div>
                         </div>
